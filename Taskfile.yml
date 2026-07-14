@@ -36,3 +36,9 @@ tasks:
     cmds:
       - docker compose build frontend
       - docker compose up -d --no-deps frontend
+
+  update:backend:
+    desc: "Rebuild and restart only the backend without rerunning database initialization"
+    cmds:
+      - docker compose build backend
+      - docker compose up -d --no-deps backend

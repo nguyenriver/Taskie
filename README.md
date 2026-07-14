@@ -106,6 +106,7 @@ The repository also includes [go-task](https://taskfile.dev/) and a `Taskfile.ym
 ```powershell
 task start:bg          # build and start the full stack
 task database:init     # initialize only when TaskieDB is missing
+task update:backend    # rebuild only the backend, preserving the database
 task update:frontend   # rebuild only the frontend
 task database:reset    # explicit destructive reset and reseed
 ```
