@@ -1,11 +1,11 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import type { User } from '../types';
+import { api } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
-  login: (token: string, user: User) => void;
-  logout: () => void;
+  login: (user: User) => void;
+  logout: () => Promise<void>;
   updateUser: (user: User) => void;
   loading: boolean;
 }
@@ -14,62 +14,52 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadAuth = () => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
-    } else {
-      setToken(null);
+  const loadAuth = async () => {
+    try {
+      const response = await api.get<{ success: boolean; user: User }>('/auth/me');
+      setUser(response.user);
+    } catch {
       setUser(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     loadAuth();
 
-    const handleAuthChange = () => {
-      loadAuth();
+    const handleAuthExpired = () => {
+      setUser(null);
     };
 
-    window.addEventListener('auth-change', handleAuthChange);
+    window.addEventListener('auth-expired', handleAuthExpired);
     return () => {
-      window.removeEventListener('auth-change', handleAuthChange);
+      window.removeEventListener('auth-expired', handleAuthExpired);
     };
   }, []);
 
-  const login = (newToken: string, newUser: User) => {
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    setToken(newToken);
+  const login = (newUser: User) => {
     setUser(newUser);
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout', {});
+    } catch {
+      // Local session state must still be cleared if the API is unavailable.
+    } finally {
+      setUser(null);
+    }
   };
 
   const updateUser = (updatedUser: User) => {
-    localStorage.setItem('user', JSON.stringify(updatedUser));
     setUser(updatedUser);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

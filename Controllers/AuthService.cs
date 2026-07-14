@@ -10,6 +10,9 @@ namespace TaskieWNC.Services
 {
     public static class AuthService
     {
+        public const string AuthCookieName = "taskie_access_token";
+        public static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(8);
+
         public static string HashPassword(string password)
         {
             return BCrypt.Net.BCrypt.HashPassword(password);
@@ -48,7 +51,7 @@ namespace TaskieWNC.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddDays(7),
+                Expires = DateTime.UtcNow.Add(TokenLifetime),
                 Issuer = configuration["Jwt:Issuer"],
                 Audience = configuration["Jwt:Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

@@ -14,18 +14,21 @@ namespace TaskieWNC.Controllers
         private readonly ListRepository _listRepository;
         private readonly BoardRepository _boardRepository;
         private readonly CommentRepository _commentRepository;
+        private readonly ILogger<CardController> _logger;
 
         public CardController(
             UserRepository userRepository,
             CardRepository cardRepository,
             ListRepository listRepository,
             BoardRepository boardRepository,
-            CommentRepository commentRepository) : base(userRepository)
+            CommentRepository commentRepository,
+            ILogger<CardController> logger) : base(userRepository)
         {
             _cardRepository = cardRepository;
             _listRepository = listRepository;
             _boardRepository = boardRepository;
             _commentRepository = commentRepository;
+            _logger = logger;
         }
 
         [HttpPost("add")]
@@ -94,7 +97,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error updating card status: {ex.Message}" });
+                _logger.LogError(ex, "Failed to update card {CardId} status", request.CardID);
+                return StatusCode(500, new { success = false, message = "Unable to update the card status right now." });
             }
         }
 
@@ -129,7 +133,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error fetching card details: {ex.Message}" });
+                _logger.LogError(ex, "Failed to fetch card {CardId}", cardId);
+                return StatusCode(500, new { success = false, message = "Unable to load the card right now." });
             }
         }
 
@@ -164,9 +169,18 @@ namespace TaskieWNC.Controllers
                 card.Description = request.Description ?? string.Empty;
                 card.Status = request.Status ?? "To Do";
 
-                if (!string.IsNullOrEmpty(request.DueDate))
+                if (!string.IsNullOrWhiteSpace(request.DueDate))
                 {
-                    card.DueDate = DateTime.Parse(request.DueDate, CultureInfo.InvariantCulture);
+                    if (!DateTime.TryParse(
+                        request.DueDate,
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal,
+                        out DateTime dueDate))
+                    {
+                        return BadRequest(new { success = false, message = "Due date must be a valid date and time." });
+                    }
+
+                    card.DueDate = dueDate;
                 }
                 else
                 {
@@ -178,7 +192,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error updating card: {ex.Message}" });
+                _logger.LogError(ex, "Failed to update card {CardId}", request.CardID);
+                return StatusCode(500, new { success = false, message = "Unable to update the card right now." });
             }
         }
 
@@ -227,7 +242,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error deleting card: {ex.Message}" });
+                _logger.LogError(ex, "Failed to delete card {CardId}", cardId);
+                return StatusCode(500, new { success = false, message = "Unable to delete the card right now." });
             }
         }
 
@@ -279,7 +295,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error fetching comments: {ex.Message}" });
+                _logger.LogError(ex, "Failed to fetch comments for card {CardId}", cardId);
+                return StatusCode(500, new { success = false, message = "Unable to load comments right now." });
             }
         }
 
@@ -342,7 +359,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error adding comment: {ex.Message}" });
+                _logger.LogError(ex, "Failed to add a comment to card {CardId}", cardId);
+                return StatusCode(500, new { success = false, message = "Unable to add the comment right now." });
             }
         }
 
@@ -396,7 +414,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error deleting comment: {ex.Message}" });
+                _logger.LogError(ex, "Failed to delete comment {CommentId}", commentId);
+                return StatusCode(500, new { success = false, message = "Unable to delete the comment right now." });
             }
         }
 
@@ -448,7 +467,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error moving card: {ex.Message}" });
+                _logger.LogError(ex, "Failed to move card {CardId} to list {ListId}", request.CardID, request.ListID);
+                return StatusCode(500, new { success = false, message = "Unable to move the card right now." });
             }
         }
 
@@ -511,7 +531,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error updating card positions: {ex.Message}" });
+                _logger.LogError(ex, "Failed to update card positions");
+                return StatusCode(500, new { success = false, message = "Unable to reorder cards right now." });
             }
         }
 

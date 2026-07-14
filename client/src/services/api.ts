@@ -6,20 +6,15 @@ interface RequestOptions {
 }
 
 async function request<T>(path: string, method: string, options: RequestOptions = {}): Promise<T> {
-  const token = localStorage.getItem('token');
-  
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...options.headers,
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
   const config: RequestInit = {
     method,
     headers,
+    credentials: 'include',
   };
 
   if (options.body) {
@@ -37,9 +32,7 @@ async function request<T>(path: string, method: string, options: RequestOptions 
   }
 
   if (response.status === 401) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.dispatchEvent(new Event('auth-change'));
+    window.dispatchEvent(new Event('auth-expired'));
     throw new Error(data.message || 'Your session has expired. Please sign in again.');
   }
 

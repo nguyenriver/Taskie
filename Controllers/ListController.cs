@@ -12,16 +12,19 @@ namespace TaskieWNC.Controllers
         private readonly BoardRepository _boardRepository;
         private readonly ListRepository _listRepository;
         private readonly CardRepository _cardRepository;
+        private readonly ILogger<ListController> _logger;
 
         public ListController(
             UserRepository userRepository,
             BoardRepository boardRepository,
             ListRepository listRepository,
-            CardRepository cardRepository) : base(userRepository)
+            CardRepository cardRepository,
+            ILogger<ListController> logger) : base(userRepository)
         {
             _boardRepository = boardRepository;
             _listRepository = listRepository;
             _cardRepository = cardRepository;
+            _logger = logger;
         }
 
         [HttpGet("board/{boardID}")]
@@ -75,7 +78,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Failed to add list: {ex.Message}" });
+                _logger.LogError(ex, "Failed to add a list to board {BoardId}", request.BoardId);
+                return StatusCode(500, new { success = false, message = "Unable to add the list right now." });
             }
         }
 
@@ -96,7 +100,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Failed to delete list: {ex.Message}" });
+                _logger.LogError(ex, "Failed to delete list {ListId}", listId);
+                return StatusCode(500, new { success = false, message = "Unable to delete the list right now." });
             }
         }
 
@@ -128,7 +133,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error updating list name: {ex.Message}" });
+                _logger.LogError(ex, "Failed to update list {ListId} name", request.ListID);
+                return StatusCode(500, new { success = false, message = "Unable to update the list right now." });
             }
         }
 
@@ -179,7 +185,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error updating list positions: {ex.Message}" });
+                _logger.LogError(ex, "Failed to update list positions");
+                return StatusCode(500, new { success = false, message = "Unable to reorder lists right now." });
             }
         }
 

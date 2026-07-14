@@ -13,18 +13,21 @@ namespace TaskieWNC.Controllers
         private readonly BoardMemberRepository _boardMemberRepository;
         private readonly ListRepository _listRepository;
         private readonly CardRepository _cardRepository;
+        private readonly ILogger<BoardController> _logger;
 
         public BoardController(
             UserRepository userRepository,
             BoardRepository boardRepository,
             BoardMemberRepository boardMemberRepository,
             ListRepository listRepository,
-            CardRepository cardRepository) : base(userRepository)
+            CardRepository cardRepository,
+            ILogger<BoardController> logger) : base(userRepository)
         {
             _boardRepository = boardRepository;
             _boardMemberRepository = boardMemberRepository;
             _listRepository = listRepository;
             _cardRepository = cardRepository;
+            _logger = logger;
         }
 
         [HttpGet("{boardId}")]
@@ -161,7 +164,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error deleting board: {ex.Message}" });
+                _logger.LogError(ex, "Failed to delete board {BoardId}", boardId);
+                return StatusCode(500, new { success = false, message = "Unable to delete the board right now." });
             }
         }
 
@@ -198,7 +202,8 @@ namespace TaskieWNC.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Error updating board name: {ex.Message}" });
+                _logger.LogError(ex, "Failed to update board {BoardId} name", request.BoardId);
+                return StatusCode(500, new { success = false, message = "Unable to update the board right now." });
             }
         }
     }

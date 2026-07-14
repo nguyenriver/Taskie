@@ -38,7 +38,7 @@ export const RegisterPage: React.FC = () => {
         // 2. Automatically log them in after registration
         const loginData = await api.post<AuthResponse>('/auth/login', { email, password });
         if (loginData.success) {
-          login(loginData.token, loginData.user);
+          login(loginData.user);
           navigate('/dashboard');
         } else {
           navigate('/login');

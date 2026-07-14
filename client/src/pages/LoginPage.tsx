@@ -24,7 +24,7 @@ export const LoginPage: React.FC = () => {
     try {
       const data = await api.post<AuthResponse>('/auth/login', { email, password });
       if (data.success) {
-        login(data.token, data.user);
+        login(data.user);
         navigate('/dashboard');
       } else {
         setError(data.message || 'Login failed.');

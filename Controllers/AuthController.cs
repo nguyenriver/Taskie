@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using TaskieWNC.Models;
 using TaskieWNC.Services;
 
@@ -11,11 +13,16 @@ namespace TaskieWNC.Controllers
     {
         private readonly UserRepository _userRepository;
         private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _environment;
 
-        public AuthController(UserRepository userRepository, IConfiguration configuration)
+        public AuthController(
+            UserRepository userRepository,
+            IConfiguration configuration,
+            IWebHostEnvironment environment)
         {
             _userRepository = userRepository;
             _configuration = configuration;
+            _environment = environment;
         }
 
         [HttpPost("register")]
@@ -66,21 +73,62 @@ namespace TaskieWNC.Controllers
             }
 
             var token = AuthService.GenerateToken(user, _configuration);
+            Response.Cookies.Append(AuthService.AuthCookieName, token, CreateAuthCookieOptions());
 
             return Ok(new
             {
                 success = true,
                 message = "Login successful.",
-                token = token,
-                user = new
-                {
-                    userID = user.UserID,
-                    email = user.Email,
-                    fullName = user.FullName,
-                    role = user.Role
-                }
+                user = CreateUserResponse(user)
             });
         }
+
+        [Authorize]
+        [HttpGet("me")]
+        public IActionResult Me()
+        {
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdValue, out int userId))
+            {
+                return Unauthorized(new { success = false, message = "Your session is invalid." });
+            }
+
+            var user = _userRepository.GetUserById(userId);
+            if (user == null)
+            {
+                return Unauthorized(new { success = false, message = "Your account is no longer available." });
+            }
+
+            return Ok(new { success = true, user = CreateUserResponse(user) });
+        }
+
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete(AuthService.AuthCookieName, CreateAuthCookieOptions());
+            return Ok(new { success = true, message = "Logged out successfully." });
+        }
+
+        private CookieOptions CreateAuthCookieOptions()
+        {
+            return new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = !_environment.IsDevelopment(),
+                SameSite = SameSiteMode.Strict,
+                Path = "/",
+                MaxAge = AuthService.TokenLifetime,
+                IsEssential = true
+            };
+        }
+
+        private static object CreateUserResponse(UserModel user) => new
+        {
+            userID = user.UserID,
+            email = user.Email,
+            fullName = user.FullName,
+            role = user.Role
+        };
     }
 
     public class RegisterRequest
