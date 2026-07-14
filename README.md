@@ -57,6 +57,37 @@ This is a portfolio and interview project, not a production SaaS application. Kn
 
 ---
 
+## Screenshots
+
+Screenshots can be added here for the portfolio presentation. Recommended captures are:
+
+* Landing page and login/register flow
+* Board workspace with lists and cards
+* Drag-and-drop card movement
+* Admin dashboard
+
+---
+
+## API Endpoint Summary
+
+Most API endpoints require JWT bearer authentication; registration and login are public.
+
+| Area | Method | Endpoint | Purpose |
+| --- | --- | --- | --- |
+| Auth | `POST` | `/api/auth/register` | Create an account |
+| Auth | `POST` | `/api/auth/login` | Sign in and receive a JWT |
+| Boards | `GET` | `/api/board/list` | List boards visible to the current user |
+| Boards | `POST` | `/api/board/create` | Create a board |
+| Boards | `GET` | `/api/board/{boardId}` | Read a board and its details |
+| Lists | `GET` | `/api/list/board/{boardId}` | Read lists for a board |
+| Cards | `GET` | `/api/card/{cardId}` | Read a card |
+| Members | `GET` | `/api/boardmember/board/{boardId}` | Read board members |
+| Admin | `GET` | `/api/admin/users` | List users as safe DTOs (Admin only) |
+
+Write operations for boards, lists, cards, comments, and members enforce the Owner/Editor/Viewer permissions described above.
+
+---
+
 ## 🚀 How to Run the Application
 
 You can run this project in two ways: using a **Full Docker Compose Setup** (one-click run) or a **Hybrid Setup** (for active development).
