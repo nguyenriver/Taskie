@@ -326,6 +326,14 @@ export const BoardPage: React.FC = () => {
   // Custom HTML5 Drag & Drop: LISTS
   const handleListDragStart = (e: React.DragEvent, index: number) => {
     if (userRole === 'Viewer') return;
+
+    // Add dragging-preview class synchronously for the browser snapshot
+    const target = e.currentTarget as HTMLElement;
+    target.classList.add('dragging-preview');
+    setTimeout(() => {
+      target.classList.remove('dragging-preview');
+    }, 0);
+
     setDraggedListIndex(index);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -361,6 +369,14 @@ export const BoardPage: React.FC = () => {
   const handleCardDragStart = (e: React.DragEvent, cardId: number, sourceListId: number) => {
     e.stopPropagation(); // Stop drag event from bubbling up to the draggable list container
     if (userRole === 'Viewer') return;
+
+    // Add dragging-preview class synchronously for the browser snapshot
+    const target = e.currentTarget as HTMLElement;
+    target.classList.add('dragging-preview');
+    setTimeout(() => {
+      target.classList.remove('dragging-preview');
+    }, 0);
+
     setDraggedCardInfo({ cardId, sourceListId });
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -591,7 +607,9 @@ export const BoardPage: React.FC = () => {
                             }
                           }}
                           onClick={() => handleOpenCard(card)}
-                          className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:shadow hover:border-blue-400 transition duration-300 cursor-pointer space-y-2.5"
+                          className={`bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:shadow hover:border-blue-400 transition duration-300 cursor-pointer space-y-2.5 ${
+                            draggedCardInfo?.cardId === card.cardID ? 'opacity-40 border-dashed' : 'opacity-100'
+                          }`}
                         >
                           <span className="font-semibold text-slate-800 text-sm block leading-snug">
                             {card.cardName}
