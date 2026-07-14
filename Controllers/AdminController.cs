@@ -148,6 +148,40 @@ namespace TaskieWNC.Controllers
             return Ok(new { success = true, message = "Board deleted successfully." });
         }
 
+        [HttpPut("boards/transfer-owner")]
+        public IActionResult TransferBoardOwnership([FromBody] TransferBoardOwnershipRequest request)
+        {
+            var board = _boardRepository.GetBoardById(request.BoardID);
+            if (board == null)
+            {
+                return NotFound(new { success = false, message = "Board not found." });
+            }
+
+            var newOwner = _userRepository.GetUserById(request.NewOwnerUserID);
+            if (newOwner == null)
+            {
+                return NotFound(new { success = false, message = "New owner was not found." });
+            }
+
+            if (board.UserID == request.NewOwnerUserID)
+            {
+                return BadRequest(new { success = false, message = "This user already owns the board." });
+            }
+
+            var updatedBoard = _boardRepository.TransferOwnership(request.BoardID, request.NewOwnerUserID);
+            if (updatedBoard == null)
+            {
+                return NotFound(new { success = false, message = "Board no longer exists." });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = "Board ownership transferred. The previous owner is now an Editor.",
+                board = updatedBoard
+            });
+        }
+
         [HttpGet("boardmembers/{boardId}")]
         public IActionResult GetBoardMembers(int boardId)
         {

@@ -48,6 +48,15 @@ namespace TaskieWNC.Models.Requests
         public string BoardName { get; set; } = string.Empty;
     }
 
+    public class TransferBoardOwnershipRequest
+    {
+        [Range(1, int.MaxValue)]
+        public int BoardID { get; set; }
+
+        [Range(1, int.MaxValue)]
+        public int NewOwnerUserID { get; set; }
+    }
+
     public class DeleteBoardRequest
     {
         public int BoardID { get; set; }

@@ -32,8 +32,12 @@ export const AdminPage: React.FC = () => {
         const data = await api.get<any[]>('/admin/users');
         setUsersList(data);
       } else if (activeTab === 'boards') {
-        const data = await api.get<any[]>('/admin/boards');
-        setBoardsList(data);
+        const [boards, users] = await Promise.all([
+          api.get<any[]>('/admin/boards'),
+          api.get<any[]>('/admin/users')
+        ]);
+        setBoardsList(boards);
+        setUsersList(users);
       } else if (activeTab === 'members') {
         const data = await api.get<any[]>('/admin/boardmembers');
         setMembersList(data);
@@ -108,14 +112,21 @@ export const AdminPage: React.FC = () => {
         path = '/admin/users/update';
         payload = { userID: editModeId, field: formData.field, value: formData.value };
       } else if (activeTab === 'boards') {
-        path = '/admin/boards/update';
-        payload = { boardID: editModeId, boardName: formData.boardName };
+        await api.put('/admin/boards/update', { boardID: editModeId, boardName: formData.boardName });
+        if (parseInt(formData.newOwnerUserID) !== formData.currentOwnerUserID) {
+          await api.put('/admin/boards/transfer-owner', {
+            boardID: editModeId,
+            newOwnerUserID: parseInt(formData.newOwnerUserID)
+          });
+        }
       } else if (activeTab === 'members') {
         path = '/admin/boardmembers/update-role';
         payload = { boardID: editModeId.boardID, userID: editModeId.userID, role: formData.role };
       }
 
-      await api.put(path, payload);
+      if (activeTab !== 'boards') {
+        await api.put(path, payload);
+      }
       setEditModeId(null);
       setFormData({});
       fetchData();
@@ -326,10 +337,23 @@ export const AdminPage: React.FC = () => {
               )}
 
               {activeTab === 'boards' && (
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-700">New Board Name</label>
-                  <input type="text" required onChange={e => setFormData({...formData, boardName: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
-                </div>
+                <>
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-slate-700">Board Name</label>
+                    <input type="text" required value={formData.boardName || ''} onChange={e => setFormData({...formData, boardName: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-slate-700">Board Owner</label>
+                    <select required value={formData.newOwnerUserID || ''} onChange={e => setFormData({...formData, newOwnerUserID: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm">
+                      {usersList.map(account => (
+                        <option key={account.userID} value={account.userID}>
+                          {account.fullName} ({account.email})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-slate-500">On transfer, the previous owner remains on the board as an Editor.</p>
+                  </div>
+                </>
               )}
 
               {activeTab === 'members' && (
@@ -409,7 +433,7 @@ export const AdminPage: React.FC = () => {
                             <td className="px-6 py-4 font-bold text-slate-800">{item.boardName}</td>
                             <td className="px-6 py-4">{item.userID}</td>
                             <td className="px-6 py-4 text-right flex items-center justify-end gap-2.5">
-                              <button onClick={() => { setFormData({}); setEditModeId(item.boardID); }} className="p-1 text-slate-400 hover:text-brand-blue transition"><Edit className="w-4 h-4" /></button>
+                              <button onClick={() => { setFormData({ boardName: item.boardName, currentOwnerUserID: item.userID, newOwnerUserID: item.userID }); setEditModeId(item.boardID); }} className="p-1 text-slate-400 hover:text-brand-blue transition" title="Rename board or transfer ownership"><Edit className="w-4 h-4" /></button>
                               <button onClick={() => handleDelete(item.boardID)} className="p-1 text-slate-400 hover:text-rose-600 transition"><Trash2 className="w-4 h-4" /></button>
                             </td>
                           </>

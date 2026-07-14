@@ -37,6 +37,51 @@ public class BoardRepository
         return existingBoard;
     }
 
+    public BoardModel? TransferOwnership(int boardId, int newOwnerId)
+    {
+        using var transaction = _dbContext.Database.BeginTransaction();
+        var board = _dbContext.Boards.Find(boardId);
+        if (board == null)
+        {
+            return null;
+        }
+
+        if (board.UserID == newOwnerId)
+        {
+            return board;
+        }
+
+        var previousOwnerId = board.UserID;
+        var newOwnerMembership = _dbContext.BoardMembers
+            .FirstOrDefault(member => member.BoardID == boardId && member.UserID == newOwnerId);
+        if (newOwnerMembership != null)
+        {
+            _dbContext.BoardMembers.Remove(newOwnerMembership);
+        }
+
+        board.UserID = newOwnerId;
+
+        var previousOwnerMembership = _dbContext.BoardMembers
+            .FirstOrDefault(member => member.BoardID == boardId && member.UserID == previousOwnerId);
+        if (previousOwnerMembership == null)
+        {
+            _dbContext.BoardMembers.Add(new BoardMemberModel
+            {
+                BoardID = boardId,
+                UserID = previousOwnerId,
+                Role = BoardRoles.Editor
+            });
+        }
+        else
+        {
+            previousOwnerMembership.Role = BoardRoles.Editor;
+        }
+
+        _dbContext.SaveChanges();
+        transaction.Commit();
+        return board;
+    }
+
     public bool DeleteBoard(int boardId)
     {
         var board = _dbContext.Boards.Find(boardId);
