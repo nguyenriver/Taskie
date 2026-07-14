@@ -351,6 +351,10 @@ export const BoardPage: React.FC = () => {
     }
   };
 
+  const handleListDragEnd = () => {
+    setDraggedListIndex(null);
+  };
+
   // Custom HTML5 Drag & Drop: CARDS
   const handleCardDragStart = (e: React.DragEvent, cardId: number, sourceListId: number) => {
     if (userRole === 'Viewer') return;
@@ -408,6 +412,10 @@ export const BoardPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to move card in database');
     }
+  };
+
+  const handleCardDragEnd = () => {
+    setDraggedCardInfo(null);
   };
 
   return (
@@ -476,6 +484,7 @@ export const BoardPage: React.FC = () => {
                 key={list.listID}
                 draggable={userRole !== 'Viewer'}
                 onDragStart={(e) => handleListDragStart(e, listIndex)}
+                onDragEnd={handleListDragEnd}
                 onDragOver={(e) => e.preventDefault()}
                 onDragEnter={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -507,6 +516,7 @@ export const BoardPage: React.FC = () => {
                       key={card.cardID}
                       draggable={userRole !== 'Viewer'}
                       onDragStart={(e) => handleCardDragStart(e, card.cardID, list.listID)}
+                      onDragEnd={handleCardDragEnd}
                       onClick={() => handleOpenCard(card)}
                       className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:shadow hover:border-blue-400 transition duration-300 cursor-pointer space-y-2.5"
                     >
