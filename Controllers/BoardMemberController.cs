@@ -74,6 +74,12 @@ namespace TaskieWNC.Controllers
                 return BadRequest(new { success = false, message = "Invalid request." });
             }
 
+            var requestedRole = request.Role ?? BoardRoles.Viewer;
+            if (!BoardRoles.TryNormalizeMemberRole(requestedRole, out string normalizedRole))
+            {
+                return BadRequest(new { success = false, message = "Role must be Editor or Viewer." });
+            }
+
             var board = _boardRepository.GetBoardById(request.BoardId);
             if (board == null || board.UserID != userId)
             {
@@ -86,6 +92,11 @@ namespace TaskieWNC.Controllers
                 return NotFound(new { success = false, message = "User not found." });
             }
 
+            if (userToInvite.UserID == board.UserID)
+            {
+                return BadRequest(new { success = false, message = "The board owner cannot also be added as a member." });
+            }
+
             if (_boardMemberRepository.IsBoardMember(request.BoardId, userToInvite.UserID))
             {
                 return BadRequest(new { success = false, message = "User is already a board member." });
@@ -95,7 +106,7 @@ namespace TaskieWNC.Controllers
             {
                 BoardID = request.BoardId,
                 UserID = userToInvite.UserID,
-                Role = request.Role ?? "Editor"
+                Role = normalizedRole
             };
 
             _boardMemberRepository.AddBoardMember(newMember);
@@ -142,13 +153,18 @@ namespace TaskieWNC.Controllers
                 return BadRequest(new { success = false, message = "Invalid request." });
             }
 
+            if (!BoardRoles.TryNormalizeMemberRole(request.Role, out string normalizedRole))
+            {
+                return BadRequest(new { success = false, message = "Role must be Editor or Viewer." });
+            }
+
             var board = _boardRepository.GetBoardById(request.BoardId);
             if (board == null || board.UserID != userId)
             {
                 return Forbid();
             }
 
-            bool success = _boardMemberRepository.UpdateBoardMemberRole(request.BoardId, request.UserId, request.Role ?? "Editor");
+            bool success = _boardMemberRepository.UpdateBoardMemberRole(request.BoardId, request.UserId, normalizedRole);
 
             if (success)
             {

@@ -36,6 +36,17 @@ namespace TaskieWNC.Controllers
                 return BadRequest(new { success = false, message = "Card name is required." });
             }
 
+            var list = _listRepository.GetListById(newCard.ListID);
+            if (list == null)
+            {
+                return NotFound(new { success = false, message = "List not found." });
+            }
+
+            if (!UserCanEdit(list.BoardID))
+            {
+                return Forbid();
+            }
+
             if (newCard.Position <= 0)
             {
                 var maxPosition = _cardRepository.GetCardsByListId(newCard.ListID)
@@ -65,6 +76,17 @@ namespace TaskieWNC.Controllers
                     return NotFound(new { success = false, message = "Card not found." });
                 }
 
+                var list = _listRepository.GetListById(card.ListID);
+                if (list == null)
+                {
+                    return NotFound(new { success = false, message = "List not found." });
+                }
+
+                if (!UserCanEdit(list.BoardID))
+                {
+                    return Forbid();
+                }
+
                 card.Status = request.Status ?? "To Do";
                 _cardRepository.UpdateCard(card);
 
@@ -92,6 +114,17 @@ namespace TaskieWNC.Controllers
                     return NotFound(new { success = false, message = "Card not found." });
                 }
 
+                var list = _listRepository.GetListById(card.ListID);
+                if (list == null)
+                {
+                    return NotFound(new { success = false, message = "List not found." });
+                }
+
+                if (!UserCanView(list.BoardID))
+                {
+                    return Forbid();
+                }
+
                 return Ok(new { success = true, card = card });
             }
             catch (Exception ex)
@@ -114,6 +147,17 @@ namespace TaskieWNC.Controllers
                 if (card == null)
                 {
                     return NotFound(new { success = false, message = "Card not found." });
+                }
+
+                var list = _listRepository.GetListById(card.ListID);
+                if (list == null)
+                {
+                    return NotFound(new { success = false, message = "List not found." });
+                }
+
+                if (!UserCanEdit(list.BoardID))
+                {
+                    return Forbid();
                 }
 
                 card.CardName = request.CardName;
@@ -165,7 +209,7 @@ namespace TaskieWNC.Controllers
                     return NotFound(new { success = false, message = "List not found." });
                 }
 
-                var canEdit = _boardRepository.HasBoardAccess(list.BoardID, userId);
+                var canEdit = _boardRepository.CanEditBoardContent(list.BoardID, userId);
                 if (!canEdit)
                 {
                     return Forbid();
@@ -200,6 +244,23 @@ namespace TaskieWNC.Controllers
                 if (!TryGetUserId(out int userId))
                 {
                     return Unauthorized(new { success = false, message = "User not logged in." });
+                }
+
+                var card = _cardRepository.GetCardById(cardId);
+                if (card == null)
+                {
+                    return NotFound(new { success = false, message = "Card not found." });
+                }
+
+                var list = _listRepository.GetListById(card.ListID);
+                if (list == null)
+                {
+                    return NotFound(new { success = false, message = "List not found." });
+                }
+
+                if (!_boardRepository.HasBoardAccess(list.BoardID, userId))
+                {
+                    return Forbid();
                 }
 
                 var comments = _commentRepository.GetCommentsByTaskId(cardId);
@@ -249,8 +310,7 @@ namespace TaskieWNC.Controllers
                     return NotFound(new { success = false, message = "List not found." });
                 }
 
-                var userRole = _boardRepository.GetUserRoleInBoard(list.BoardID, userId);
-                if (userRole != "Owner" && userRole != "Editor")
+                if (!_boardRepository.CanEditBoardContent(list.BoardID, userId))
                 {
                     return Forbid();
                 }
@@ -319,11 +379,7 @@ namespace TaskieWNC.Controllers
                     return NotFound(new { success = false, message = "Associated list not found." });
                 }
 
-                var userRole = _boardRepository.GetUserRoleInBoard(list.BoardID, userId);
-                bool isCommentOwner = comment.UserID == userId;
-                bool canEdit = userRole == "Owner" || userRole == "Editor";
-
-                if (!isCommentOwner && !canEdit)
+                if (!_boardRepository.CanEditBoardContent(list.BoardID, userId))
                 {
                     return Forbid();
                 }
@@ -425,15 +481,31 @@ namespace TaskieWNC.Controllers
                     return Forbid();
                 }
 
+                var cardsToUpdate = new List<CardModel>();
                 foreach (var update in updates)
                 {
                     var card = _cardRepository.GetCardById(update.CardID);
-                    if (card != null)
+                    if (card == null)
                     {
-                        card.Position = update.Position;
-                        _cardRepository.UpdateCard(card);
+                        return NotFound(new { success = false, message = $"Card {update.CardID} was not found." });
                     }
+
+                    var cardList = _listRepository.GetListById(card.ListID);
+                    if (cardList == null)
+                    {
+                        return NotFound(new { success = false, message = $"List for card {update.CardID} was not found." });
+                    }
+
+                    if (cardList.BoardID != list.BoardID)
+                    {
+                        return BadRequest(new { success = false, message = "All cards must belong to the same board." });
+                    }
+
+                    cardsToUpdate.Add(card);
                 }
+
+                _cardRepository.UpdatePositions(
+                    cardsToUpdate.Zip(updates, (card, update) => (card, update.Position)));
 
                 return Ok(new { success = true, message = "Card positions updated successfully." });
             }
@@ -449,6 +521,16 @@ namespace TaskieWNC.Controllers
             {
                 return false;
             }
+            return _boardRepository.CanEditBoardContent(boardId, userId);
+        }
+
+        private bool UserCanView(int boardId)
+        {
+            if (!TryGetUserId(out int userId))
+            {
+                return false;
+            }
+
             return _boardRepository.HasBoardAccess(boardId, userId);
         }
 

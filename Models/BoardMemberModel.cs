@@ -18,7 +18,7 @@ namespace TaskieWNC.Models
 
         [Required]
         [StringLength(50)]
-        public string Role { get; set; } = "Editor"; // Options: "Owner", "Editor", "Viewer"
+        public string Role { get; set; } = BoardRoles.Viewer; // Membership roles: Editor or Viewer. Ownership lives on Board.UserID.
 
         [Required]
         public DateTime AddedAt { get; set; } = DateTime.Now;

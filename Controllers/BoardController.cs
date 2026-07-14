@@ -151,7 +151,7 @@ namespace TaskieWNC.Controllers
                     return NotFound(new { success = false, message = "Board not found." });
                 }
 
-                if (board.UserID != userId)
+                if (!_boardRepository.IsBoardOwner(boardId, userId))
                 {
                     return Forbid();
                 }
@@ -186,7 +186,7 @@ namespace TaskieWNC.Controllers
                     return NotFound(new { success = false, message = "Board not found." });
                 }
 
-                if (board.UserID != userId)
+                if (!_boardRepository.IsBoardOwner(request.BoardId, userId))
                 {
                     return Forbid();
                 }

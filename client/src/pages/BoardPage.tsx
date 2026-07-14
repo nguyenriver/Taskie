@@ -88,7 +88,7 @@ export const BoardPage: React.FC = () => {
   // Rename Board
   const handleRenameBoard = async (e: React.FocusEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>) => {
     const newName = (e.target as HTMLInputElement).value.trim();
-    if (!newName || newName === boardName || userRole === 'Viewer') return;
+    if (!newName || newName === boardName || userRole !== 'Owner') return;
 
     try {
       await api.put('/board/update-name', { boardId, boardName: newName });
@@ -493,7 +493,7 @@ export const BoardPage: React.FC = () => {
             onChange={(e) => setBoardName(e.target.value)}
             onBlur={handleRenameBoard}
             onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-            disabled={userRole === 'Viewer'}
+            disabled={userRole !== 'Owner'}
             className="font-bold text-lg px-2.5 py-1 bg-transparent hover:bg-white/10 focus:bg-white focus:text-slate-800 rounded-md focus:outline-none transition w-44 sm:w-auto"
           />
 
@@ -835,7 +835,7 @@ export const BoardPage: React.FC = () => {
                         </div>
                         <p className="text-slate-600 leading-normal">{comment.content}</p>
                         
-                        {(userRole === 'Owner' || comment.userID === user?.userID) && (
+                        {userRole !== 'Viewer' && (
                           <div className="text-right">
                             <button
                               onClick={() => handleDeleteComment(comment.commentID)}
@@ -931,7 +931,7 @@ export const BoardPage: React.FC = () => {
               </div>
             )}
 
-            {userRole !== 'Viewer' && (
+            {userRole === 'Owner' && (
               <form onSubmit={handleInvite} className="space-y-3">
                 <div className="space-y-1">
                   <label className="text-sm font-semibold text-slate-700">Invite User by Email</label>

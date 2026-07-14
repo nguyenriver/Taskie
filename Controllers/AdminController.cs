@@ -285,6 +285,11 @@ namespace TaskieWNC.Controllers
         [HttpPost("boardmembers/add")]
         public IActionResult AddBoardMember([FromBody] AddBoardMemberRequest request)
         {
+            if (!BoardRoles.TryNormalizeMemberRole(request.Role, out string normalizedRole))
+            {
+                return BadRequest(new { success = false, message = "Role must be Editor or Viewer." });
+            }
+
             var board = _boardRepository.GetBoardById(request.BoardID);
             if (board == null)
             {
@@ -297,6 +302,11 @@ namespace TaskieWNC.Controllers
                 return NotFound(new { success = false, message = "User not found." });
             }
 
+            if (board.UserID == request.UserID)
+            {
+                return BadRequest(new { success = false, message = "The board owner cannot also be added as a member." });
+            }
+
             if (_boardMemberRepository.IsBoardMember(request.BoardID, request.UserID))
             {
                 return BadRequest(new { success = false, message = "User is already a member of this board." });
@@ -306,7 +316,7 @@ namespace TaskieWNC.Controllers
             {
                 BoardID = request.BoardID,
                 UserID = request.UserID,
-                Role = request.Role
+                Role = normalizedRole
             };
 
             _boardMemberRepository.AddBoardMember(boardMember);
@@ -316,7 +326,12 @@ namespace TaskieWNC.Controllers
         [HttpPut("boardmembers/update-role")]
         public IActionResult UpdateBoardMemberRole([FromBody] UpdateBoardMemberRoleRequest request)
         {
-            var success = _boardMemberRepository.UpdateBoardMemberRole(request.BoardID, request.UserID, request.Role);
+            if (!BoardRoles.TryNormalizeMemberRole(request.Role, out string normalizedRole))
+            {
+                return BadRequest(new { success = false, message = "Role must be Editor or Viewer." });
+            }
+
+            var success = _boardMemberRepository.UpdateBoardMemberRole(request.BoardID, request.UserID, normalizedRole);
             if (!success)
             {
                 return BadRequest(new { success = false, message = "Failed to update board member role." });

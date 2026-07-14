@@ -12,7 +12,8 @@ CREATE TABLE Users (
     PasswordHash NVARCHAR(255) NOT NULL, -- Hashed password for security
     FullName NVARCHAR(255) NOT NULL, -- User's full name
     CreatedAt DATETIME DEFAULT GETDATE(), -- Date and time the user was created
-    Role NVARCHAR(50) NOT NULL DEFAULT 'User' -- User role (User or Admin)
+    Role NVARCHAR(50) NOT NULL DEFAULT 'User', -- User role (User or Admin)
+    VerifyKey NVARCHAR(10) NULL
 );
 
 -- Table: Boards
@@ -30,7 +31,7 @@ CREATE TABLE Lists (
     BoardID INT NOT NULL, -- ID of the board the list belongs to
     ListName NVARCHAR(255) NOT NULL, -- Name of the list
     Position INT NOT NULL, -- Order of the list within the board
-    CONSTRAINT FK_Lists_Boards FOREIGN KEY (BoardID) REFERENCES Boards(BoardID) -- Foreign key to link list to board
+    CONSTRAINT FK_Lists_Boards FOREIGN KEY (BoardID) REFERENCES Boards(BoardID) ON DELETE CASCADE
 );
 
 -- Table: Cards
@@ -43,7 +44,7 @@ CREATE TABLE Cards (
     Status NVARCHAR(50) CHECK (Status IN ('To Do', 'In Progress', 'Done')) NOT NULL, -- Card status
     Position INT NOT NULL DEFAULT 0, -- Order of the Card within the list
     CreatedAt DATETIME DEFAULT GETDATE(), -- Date and time the Card was created
-    CONSTRAINT FK_Cards_Lists FOREIGN KEY (ListID) REFERENCES Lists(ListID) -- Foreign key to link Card to list
+    CONSTRAINT FK_Cards_Lists FOREIGN KEY (ListID) REFERENCES Lists(ListID) ON DELETE CASCADE
 );
 
 -- Table: Comments
@@ -53,7 +54,7 @@ CREATE TABLE Comments (
     UserID INT NOT NULL, -- ID of the user who wrote the comment
     Content NVARCHAR(MAX) NOT NULL, -- Comment content
     CreatedAt DATETIME DEFAULT GETDATE(), -- Date and time the comment was created
-    CONSTRAINT FK_Comments_Cards FOREIGN KEY (CardID) REFERENCES Cards(CardID) ON DELETE NO ACTION, -- Prevent cascade delete
+    CONSTRAINT FK_Comments_Cards FOREIGN KEY (CardID) REFERENCES Cards(CardID) ON DELETE CASCADE,
     CONSTRAINT FK_Comments_Users FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE NO ACTION -- Prevent cascade delete
 );
 
@@ -62,11 +63,12 @@ CREATE TABLE BoardMembers (
     MemberID INT IDENTITY(1,1) PRIMARY KEY, -- Auto-incrementing ID for the board membership
     BoardID INT NOT NULL, -- ID of the board 
     UserID INT NOT NULL, -- ID of the user who is a member
-    Role NVARCHAR(50) NOT NULL DEFAULT 'Editor', -- Role in the board (Owner, Editor, Viewer)
+    Role NVARCHAR(50) NOT NULL DEFAULT 'Viewer', -- Membership role (Editor or Viewer)
     AddedAt DATETIME DEFAULT GETDATE(), -- Date and time the member was added
     CONSTRAINT FK_BoardMembers_Boards FOREIGN KEY (BoardID) REFERENCES Boards(BoardID) ON DELETE CASCADE,
     CONSTRAINT FK_BoardMembers_Users FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE NO ACTION,
-    CONSTRAINT UQ_BoardMembers UNIQUE (BoardID, UserID) -- Ensure a user can be a member of a board only once
+    CONSTRAINT UQ_BoardMembers UNIQUE (BoardID, UserID), -- Ensure a user can be a member of a board only once
+    CONSTRAINT CK_BoardMembers_Role CHECK (Role IN ('Editor', 'Viewer'))
 );
 
 -- Indexes for faster queries
@@ -80,7 +82,7 @@ CREATE INDEX IX_BoardMembers_UserID ON BoardMembers(UserID); -- Speed up fetchin
 
 -- Create initial admin account
 INSERT INTO Users (Email, PasswordHash, FullName, Role)
-VALUES ('admin@taskie.com', '$2a$11$CgAtL0xKL9P0L74.vbKlD.3GzZJ0RsaMJJITbFgLKaIBeUAF9zBp2', 'System Admin', 'Admin');
+VALUES ('admin@taskie.com', '$2a$11$xCd1V6SiyH1rvyU5HuYmkuunNe97hMcogjNl/kDHAO.PLejvUWnDe', 'System Admin', 'Admin');
 
 -- Queries to select all data from each table
 SELECT * FROM Users;
@@ -89,8 +91,3 @@ SELECT * FROM Lists;
 SELECT * FROM Cards;
 SELECT * FROM Comments;
 SELECT * FROM BoardMembers;
-
-UPDATE Users SET Role = 'Admin'
-WHERE UserID = 1
-
-DELETE Users WHERE UserID = 4

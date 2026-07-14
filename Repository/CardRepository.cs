@@ -37,6 +37,16 @@ public class CardRepository
         return existingCard;
     }
 
+    public void UpdatePositions(IEnumerable<(CardModel Card, int Position)> updates)
+    {
+        foreach (var (card, position) in updates)
+        {
+            card.Position = position;
+        }
+
+        _dbContext.SaveChanges();
+    }
+
     public bool DeleteCard(int cardId)
     {
         var card = _dbContext.Cards.Find(cardId);

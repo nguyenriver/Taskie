@@ -37,6 +37,16 @@ public class ListRepository
         return existingList;
     }
 
+    public void UpdatePositions(IEnumerable<(ListModel List, int Position)> updates)
+    {
+        foreach (var (list, position) in updates)
+        {
+            list.Position = position;
+        }
+
+        _dbContext.SaveChanges();
+    }
+
     public bool DeleteList(int listId)
     {
         var list = _dbContext.Lists.Find(listId);

@@ -12,24 +12,31 @@ namespace TaskieWNC.Controllers
         private readonly BoardRepository _boardRepository;
         private readonly ListRepository _listRepository;
         private readonly CardRepository _cardRepository;
-        private readonly BoardMemberRepository _boardMemberRepository;
 
         public ListController(
             UserRepository userRepository,
             BoardRepository boardRepository,
             ListRepository listRepository,
-            CardRepository cardRepository,
-            BoardMemberRepository boardMemberRepository) : base(userRepository)
+            CardRepository cardRepository) : base(userRepository)
         {
             _boardRepository = boardRepository;
             _listRepository = listRepository;
             _cardRepository = cardRepository;
-            _boardMemberRepository = boardMemberRepository;
         }
 
         [HttpGet("board/{boardID}")]
         public IActionResult GetLists(int boardID)
         {
+            if (!TryGetUserId(out int userId))
+            {
+                return Unauthorized(new { success = false, message = "User not logged in." });
+            }
+
+            if (!_boardRepository.HasBoardAccess(boardID, userId))
+            {
+                return Forbid();
+            }
+
             var lists = _listRepository.GetListsByBoardId(boardID)
                                       .OrderBy(l => l.Position)
                                       .ToList();
@@ -148,15 +155,25 @@ namespace TaskieWNC.Controllers
                     return Forbid();
                 }
 
+                var listsToUpdate = new List<ListModel>();
                 foreach (var update in updates)
                 {
                     var list = _listRepository.GetListById(update.ListID);
-                    if (list != null)
+                    if (list == null)
                     {
-                        list.Position = update.Position;
-                        _listRepository.UpdateList(list);
+                        return NotFound(new { success = false, message = $"List {update.ListID} was not found." });
                     }
+
+                    if (list.BoardID != firstList.BoardID)
+                    {
+                        return BadRequest(new { success = false, message = "All lists must belong to the same board." });
+                    }
+
+                    listsToUpdate.Add(list);
                 }
+
+                _listRepository.UpdatePositions(
+                    listsToUpdate.Zip(updates, (list, update) => (list, update.Position)));
 
                 return Ok(new { success = true, message = "List positions updated successfully." });
             }
@@ -173,13 +190,7 @@ namespace TaskieWNC.Controllers
                 return false;
             }
 
-            var board = _boardRepository.GetBoardById(boardId);
-            if (board == null) return false;
-
-            if (board.UserID == userId) return true;
-
-            var membership = _boardMemberRepository.GetBoardMembership(boardId, userId);
-            return membership != null && membership.Role == "Editor";
+            return _boardRepository.CanEditBoardContent(boardId, userId);
         }
 
         public class AddListRequest

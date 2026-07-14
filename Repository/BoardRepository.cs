@@ -74,6 +74,25 @@ public class BoardRepository
         // Check if user is a board member
         return _dbContext.BoardMembers.Any(bm => bm.BoardID == boardId && bm.UserID == userId);
     }
+
+    public bool CanEditBoardContent(int boardId, int userId)
+    {
+        var board = _dbContext.Boards.Find(boardId);
+        if (board != null && board.UserID == userId)
+        {
+            return true;
+        }
+
+        return _dbContext.BoardMembers.Any(bm =>
+            bm.BoardID == boardId &&
+            bm.UserID == userId &&
+            bm.Role == BoardRoles.Editor);
+    }
+
+    public bool IsBoardOwner(int boardId, int userId)
+    {
+        return _dbContext.Boards.Any(board => board.BoardID == boardId && board.UserID == userId);
+    }
     public List<BoardWithOwnerInfo> GetSharedBoardsByUserId(int userId)
     {
         // Find boards where the user is a member and include owner info
@@ -103,14 +122,14 @@ public class BoardRepository
     /// </summary>
     /// <param name="boardId">The ID of the board</param>
     /// <param name="userId">The ID of the user</param>
-    /// <returns>Role as a string: "Owner", "Editor", or "Viewer"</returns>
-    public string GetUserRoleInBoard(int boardId, int userId)
+    /// <returns>Role as a string, or null when the user has no access to the board.</returns>
+    public string? GetUserRoleInBoard(int boardId, int userId)
     {
         // Check if the user is the owner of the board
         var board = GetBoardById(boardId);
         if (board != null && board.UserID == userId)
         {
-            return "Owner";
+            return BoardRoles.Owner;
         }
 
         // Check if user is a member with a specific role
@@ -123,7 +142,7 @@ public class BoardRepository
         }
 
         // User has no role in this board
-        return "Viewer"; // Default to most restrictive
+        return null;
     }
 
     public class BoardWithOwnerInfo
