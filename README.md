@@ -15,7 +15,7 @@ This is a portfolio and interview project, not a production SaaS application. Kn
 * Automated tests are not included yet.
 * Demo credentials are for local seed data only and must be changed for any real deployment.
 * Database credentials and JWT signing keys must be supplied through environment configuration in real deployments.
-* Production hardening, monitoring, backups, and operational runbooks are outside the current project scope.
+* Production monitoring, automatic off-site backups, and full operational runbooks are outside the current project scope. Local manual backup and restore commands are included.
 
 ---
 
@@ -25,7 +25,7 @@ This is a portfolio and interview project, not a production SaaS application. Kn
 * **Framework:** ASP.NET Core 10.0 Web API (REST Architecture)
 * **Database Access (ORM):** Entity Framework Core 10.0.9
 * **Database Engine:** Microsoft SQL Server
-* **Security:** JWT (JSON Web Tokens) Bearer Authentication
+* **Security:** JWT authentication stored in an HttpOnly, SameSite cookie
 
 ### Frontend (Client)
 * **Framework/Bundler:** Vite + React (TypeScript)
@@ -71,12 +71,14 @@ Screenshots can be added here for the portfolio presentation. Recommended captur
 
 ## API Endpoint Summary
 
-Most API endpoints require JWT bearer authentication; registration and login are public.
+Most API endpoints require authentication. The browser receives the JWT only as an HttpOnly cookie; registration and login are public.
 
 | Area | Method | Endpoint | Purpose |
 | --- | --- | --- | --- |
 | Auth | `POST` | `/api/auth/register` | Create an account |
-| Auth | `POST` | `/api/auth/login` | Sign in and receive a JWT |
+| Auth | `POST` | `/api/auth/login` | Sign in and set the secure authentication cookie |
+| Auth | `GET` | `/api/auth/me` | Restore the current browser session |
+| Auth | `POST` | `/api/auth/logout` | Clear the authentication cookie |
 | Boards | `GET` | `/api/board/list` | List boards visible to the current user |
 | Boards | `POST` | `/api/board/create` | Create a board |
 | Boards | `GET` | `/api/board/{boardId}` | Read a board and its details |
@@ -84,6 +86,7 @@ Most API endpoints require JWT bearer authentication; registration and login are
 | Cards | `GET` | `/api/card/{cardId}` | Read a card |
 | Members | `GET` | `/api/boardmember/board/{boardId}` | Read board members |
 | Admin | `GET` | `/api/admin/users` | List users as safe DTOs (Admin only) |
+| Admin | `PUT` | `/api/admin/boards/transfer-owner` | Transfer ownership and retain the previous owner as Editor |
 
 Write operations for boards, lists, cards, comments, and members enforce the Owner/Editor/Viewer permissions described above.
 
@@ -106,7 +109,10 @@ The repository also includes [go-task](https://taskfile.dev/) and a `Taskfile.ym
 
 ```powershell
 task start:bg          # build and start the full stack
-task database:init     # initialize only when TaskieDB is missing
+task database:init     # initialize if missing and apply pending migrations
+task database:migrate  # apply pending migrations without deleting data
+task database:backup   # create a timestamped .bak file in backups/
+task database:restore -- <backup-file> # explicitly restore and replace TaskieDB
 task update:backend    # rebuild only the backend, preserving the database
 task update:frontend   # rebuild only the frontend
 task database:reset    # explicit destructive reset and reseed
@@ -140,6 +146,18 @@ docker compose down
 
 SQL Server data is stored in the `taskie-db-data` named volume and survives normal container teardown. Use `task database:reset` only when you intentionally want to delete and reseed `TaskieDB`; `docker compose down -v` also deletes the volume.
 
+Incremental schema changes live in `docs/migrations` and are recorded in the `SchemaMigrations` table. Add a new sequentially numbered SQL file, such as `002_add_card_label.sql`, then run `task database:migrate`. Applied migrations are skipped on later starts.
+
+To create and restore local backups:
+
+```powershell
+task database:backup
+Get-ChildItem backups
+task database:restore -- TaskieDB_YYYYMMDDTHHMMSSZ.bak
+```
+
+Restore replaces the current `TaskieDB`, so it is intentionally explicit. Backup files are ignored by Git.
+
 ---
 
 ### Option B: Hybrid Local Setup (Recommended for Active Development)
@@ -162,7 +180,7 @@ Ensure Docker Desktop is open, then start SQL Server and initialize the schema o
 task database:init
 ```
 
-The local Docker demo uses `docs/Taskie.sql` as its schema bootstrap. Do not run `dotnet ef database update` against this SQL-initialized database.
+The local Docker demo uses `docs/Taskie.sql` only for a fresh bootstrap and `docs/migrations` for incremental updates. Do not run `dotnet ef database update` against this SQL-managed database.
 
 ##### 3. Configure native API secrets
 ASP.NET Core does not load `.env` automatically. Store the native API configuration with .NET user-secrets, using the same local password/key values from `.env`:
@@ -194,7 +212,7 @@ Open your browser and navigate to `http://localhost:5173`.
 ---
 
 ## 🔒 Security & Architecture Notes
-* **Authentication:** The project transitioned from session-based cookie cookies to stateless **JWT Token authentication** in `.NET 10.0`.
+* **Authentication:** The API uses a short-lived JWT, but the browser never stores or reads it. Login places it in an HttpOnly, SameSite cookie, API requests include credentials, and logout removes the cookie.
 * **Password Hashing:** Upgraded to **BCrypt** (via `BCrypt.Net-Next`) to ensure secure salted password hashing, including work-factor tuning. A SHA256 fallback is included for legacy database compatibilities.
 * **Configuration:** Database credentials, JWT signing settings, CORS origins, and the frontend API URL are supplied through environment variables (`.env` for Docker Compose; .NET/Vite environment settings for native development).
 * **Clean Code Separation:** Business database logic is decoupled from Controllers via the **Repository Pattern** to ensure testability and isolation.

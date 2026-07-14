@@ -17,10 +17,29 @@ tasks:
       - docker compose up -d --build {{.CLI_ARGS}}
 
   database:init:
-    desc: "Start SQL Server and initialize TaskieDB without deleting existing data"
+    desc: "Start SQL Server, initialize TaskieDB if missing, and apply pending migrations"
     cmds:
       - docker compose up -d db
       - docker compose run --rm init-db
+
+  database:migrate:
+    desc: "Apply pending SQL migrations without deleting existing data"
+    cmds:
+      - docker compose up -d db
+      - docker compose run --rm init-db
+
+  database:backup:
+    desc: "Create a timestamped SQL Server backup in the local backups directory"
+    cmds:
+      - docker compose up -d db
+      - docker compose exec -T db /bin/bash /usr/local/taskie-db/backup.sh
+
+  database:restore:
+    desc: "Restore TaskieDB from a backup filename in backups (explicitly destructive)"
+    cmds:
+      - docker compose stop backend
+      - defer: docker compose up -d backend
+      - docker compose exec -T db /bin/bash /usr/local/taskie-db/restore.sh "{{.CLI_ARGS}}"
 
   database:reset:
     desc: "Destructively reset TaskieDB, then initialize the seed data"

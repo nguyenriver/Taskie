@@ -33,6 +33,9 @@ client/dist/
 .env.production.local
 *.env
 
+## Local SQL Server backups
+backups/*.bak
+
 ## OS files
 Thumbs.db
 ehthumbs.db

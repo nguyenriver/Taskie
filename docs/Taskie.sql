@@ -84,11 +84,3 @@ CREATE INDEX IX_BoardMembers_UserID ON BoardMembers(UserID); -- Speed up fetchin
 -- Create initial admin account
 INSERT INTO Users (Email, PasswordHash, FullName, Role)
 VALUES ('admin@taskie.com', '$2a$11$xCd1V6SiyH1rvyU5HuYmkuunNe97hMcogjNl/kDHAO.PLejvUWnDe', 'System Admin', 'Admin');
-
--- Queries to select all data from each table
-SELECT * FROM Users;
-SELECT * FROM Boards;
-SELECT * FROM Lists;
-SELECT * FROM Cards;
-SELECT * FROM Comments;
-SELECT * FROM BoardMembers;
