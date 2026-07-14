@@ -23,7 +23,7 @@ This is a portfolio and interview project, not a production SaaS application. Kn
 
 ### Backend (Server)
 * **Framework:** ASP.NET Core 10.0 Web API (REST Architecture)
-* **Database Access (ORM):** Entity Framework Core 10.0.9 (Code-First Migrations)
+* **Database Access (ORM):** Entity Framework Core 10.0.9
 * **Database Engine:** Microsoft SQL Server
 * **Security:** JWT (JSON Web Tokens) Bearer Authentication
 
@@ -53,7 +53,8 @@ This is a portfolio and interview project, not a production SaaS application. Kn
 * **Discussions:** Add and delete comments under cards to communicate within teams.
 
 ### 🛡️ Admin Dashboard
-* A secure, dedicated panel for system administrators (`[Authorize(Roles = "Admin")]`) to perform global CRUD management over Users, Boards, Lists, Cards, Comments, and Memberships.
+* A secure, dedicated panel for system administrators (`[Authorize(Roles = "Admin")]`) to manage accounts, system roles, board records, ownership, and memberships.
+* Administrators do not automatically receive access to private card or comment content.
 
 ---
 
@@ -134,8 +135,10 @@ task database:reset    # explicit destructive reset and reseed
 
 To tear down the containers:
 ```powershell
-docker compose down -v
+docker compose down
 ```
+
+SQL Server data is stored in the `taskie-db-data` named volume and survives normal container teardown. Use `task database:reset` only when you intentionally want to delete and reseed `TaskieDB`; `docker compose down -v` also deletes the volume.
 
 ---
 
@@ -151,25 +154,26 @@ This setup runs the database container in Docker, while running the React client
 #### Steps:
 
 ##### 1. Configure local settings
-Create `.env` from `.env.example` as shown in Option A. Native API startup reads the same settings through .NET environment variables or your IDE launch profile.
+Create `.env` from `.env.example` as shown in Option A. Docker Compose reads this file for SQL Server and container configuration.
 
-##### 2. Start the Database Container
-Ensure Docker Desktop is open and run the following command to spin up a local SQL Server instance:
+##### 2. Start and initialize the database
+Ensure Docker Desktop is open, then start SQL Server and initialize the schema only if `TaskieDB` is missing:
 ```powershell
-docker compose up -d db
+task database:init
 ```
-*(If the container is already created, just start it using: `docker start taskie-sqlserver`)*
 
-##### 3. Apply Code-First Migrations
-Ensure the Entity Framework Core global tool is installed:
+The local Docker demo uses `docs/Taskie.sql` as its schema bootstrap. Do not run `dotnet ef database update` against this SQL-initialized database.
+
+##### 3. Configure native API secrets
+ASP.NET Core does not load `.env` automatically. Store the native API configuration with .NET user-secrets, using the same local password/key values from `.env`:
+
 ```powershell
-dotnet tool install --global dotnet-ef
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=TaskieDB;User Id=sa;Password=<SA_PASSWORD from .env>;TrustServerCertificate=True"
+dotnet user-secrets set "Jwt:Key" "<JWT_KEY from .env>"
+dotnet user-secrets set "Jwt:Issuer" "TaskieAPI"
+dotnet user-secrets set "Jwt:Audience" "TaskieClient"
+dotnet user-secrets set "Cors:AllowedOrigins" "http://localhost:5173"
 ```
-Run migrations from the root folder to set up database schemas:
-```powershell
-dotnet ef database update
-```
-*(Note: To seed the default administrator account `admin@taskie.com` and sample boards, run the SQL script `docs/Taskie.sql` inside your database client).*
 
 ##### 4. Start the Backend API
 Start the Web API with hot-reload enabled:
