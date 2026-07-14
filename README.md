@@ -4,6 +4,21 @@ Taskie is a modern, full-stack, decoupled task management web application design
 
 ---
 
+## AI-Assisted Refactor
+
+Taskie started as an academic ASP.NET MVC project and was later refactored with an AI-assisted workflow into an ASP.NET Core Web API and React SPA. The architecture, security changes, manual verification, cleanup, and documentation were reviewed manually.
+
+## Known Limitations
+
+This is a portfolio and interview project, not a production SaaS application. Known limitations include:
+
+* Automated tests are not included yet.
+* Demo credentials are for local seed data only and must be changed for any real deployment.
+* Database credentials and JWT signing keys must be supplied through environment configuration in real deployments.
+* Production hardening, monitoring, backups, and operational runbooks are outside the current project scope.
+
+---
+
 ## 🛠️ Technology Stack
 
 ### Backend (Server)
