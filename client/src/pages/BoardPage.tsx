@@ -50,6 +50,7 @@ export const BoardPage: React.FC = () => {
   const [draggedCardInfo, setDraggedCardInfo] = useState<{ cardId: number; sourceListId: number } | null>(null);
   const [dragOverListId, setDragOverListId] = useState<number | null>(null);
   const [dragOverCardIndex, setDragOverCardIndex] = useState<number | null>(null);
+  const [dragOverListIndex, setDragOverListIndex] = useState<number | null>(null);
 
   const fetchBoardDetails = async () => {
     try {
@@ -352,6 +353,7 @@ export const BoardPage: React.FC = () => {
     }));
     setLists(reordered);
     setDraggedListIndex(null);
+    setDragOverListIndex(null);
 
     // Call API to persist reorder positions
     try {
@@ -363,6 +365,7 @@ export const BoardPage: React.FC = () => {
 
   const handleListDragEnd = () => {
     setDraggedListIndex(null);
+    setDragOverListIndex(null);
   };
 
   // Custom HTML5 Drag & Drop: CARDS
@@ -528,7 +531,17 @@ export const BoardPage: React.FC = () => {
       )}
 
       {/* Board Column Canvas */}
-      <main className="flex-grow flex gap-4 overflow-x-auto py-4 px-6 items-start scrollbar-thin select-none">
+      <main 
+        className="flex-grow flex gap-4 overflow-x-auto py-4 px-6 items-start scrollbar-thin select-none"
+        onDragOver={(e) => {
+          if (draggedListIndex !== null) {
+            e.preventDefault();
+            if (e.target === e.currentTarget) {
+              setDragOverListIndex(lists.length);
+            }
+          }
+        }}
+      >
         {loading ? (
           <div className="flex gap-4">
             {[...Array(3)].map((_, i) => (
@@ -537,25 +550,36 @@ export const BoardPage: React.FC = () => {
           </div>
         ) : (
           <>
-            {lists.map((list, listIndex) => (
-              <div
-                key={list.listID}
-                draggable={userRole !== 'Viewer'}
-                onDragStart={(e) => handleListDragStart(e, listIndex)}
-                onDragEnd={handleListDragEnd}
-                onDragOver={(e) => e.preventDefault()}
-                onDragEnter={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  if (draggedListIndex !== null) {
-                    handleListDrop(e, listIndex);
-                  } else if (draggedCardInfo) {
-                    handleCardDrop(e, list.listID);
-                  }
-                }}
-                className={`w-72 shrink-0 bg-slate-100 rounded-2xl border border-slate-200/60 p-4 flex flex-col max-h-[calc(100vh-180px)] shadow-lg transition-all duration-300 ${
-                  draggedListIndex === listIndex ? 'opacity-40 border-dashed border-blue-400' : ''
-                }`}
-              >
+            {lists.map((list, listIndex) => {
+              const showListPlaceholderHere = draggedListIndex !== null && dragOverListIndex === listIndex;
+
+              return (
+                <React.Fragment key={list.listID}>
+                  {showListPlaceholderHere && (
+                    <div className="w-72 shrink-0 h-[calc(100vh-180px)] border-2 border-dashed border-white/40 bg-white/10 rounded-2xl animate-pulse" />
+                  )}
+                  <div
+                    draggable={userRole !== 'Viewer'}
+                    onDragStart={(e) => handleListDragStart(e, listIndex)}
+                    onDragEnd={handleListDragEnd}
+                    onDragOver={(e) => {
+                      if (draggedListIndex !== null) {
+                        e.preventDefault();
+                        setDragOverListIndex(listIndex);
+                      }
+                    }}
+                    onDragEnter={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      if (draggedListIndex !== null) {
+                        handleListDrop(e, listIndex);
+                      } else if (draggedCardInfo) {
+                        handleCardDrop(e, list.listID);
+                      }
+                    }}
+                    className={`w-72 shrink-0 bg-slate-100 rounded-2xl border border-slate-200/60 p-4 flex flex-col max-h-[calc(100vh-180px)] shadow-lg transition-all duration-300 ${
+                      draggedListIndex === listIndex ? 'opacity-40 border-dashed border-blue-400' : ''
+                    }`}
+                  >
                 {/* List Header */}
                 <div className="flex items-center justify-between pb-3">
                   <h4 className="font-extrabold text-slate-800 text-sm">{list.listName}</h4>
@@ -687,7 +711,13 @@ export const BoardPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            ))}
+            </React.Fragment>
+          );
+        })}
+
+        {draggedListIndex !== null && dragOverListIndex === lists.length && (
+          <div className="w-72 shrink-0 h-[calc(100vh-180px)] border-2 border-dashed border-white/40 bg-white/10 rounded-2xl animate-pulse" />
+        )}
 
             {/* Add New List Button */}
             {userRole !== 'Viewer' && (
