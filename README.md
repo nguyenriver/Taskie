@@ -56,16 +56,21 @@ This setup launches the entire stack (Database, C# API, Nginx frontend server) i
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
 
 #### Steps:
-1. In the project root directory, run the following command:
+1. Create your local environment file from the example:
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+   Edit `.env` and replace the example `SA_PASSWORD` and `JWT_KEY` values. Keep `.env` private; it is ignored by Git.
+2. In the project root directory, run the following command:
    ```powershell
    docker compose up --build
    ```
-2. Wait until the output logs print `Database initialization complete` and the backend service is running.
-3. Open your browser and navigate to:
+3. Wait until the output logs print `Database initialization complete` and the backend service is running.
+4. Open your browser and navigate to:
    ```text
    http://localhost:5173
    ```
-4. Log in using the default administrator credentials:
+5. Log in using the default administrator credentials (for local demo data only):
    * **Email:** `admin@taskie.com`
    * **Password:** `admin123`
 
@@ -87,14 +92,17 @@ This setup runs the database container in Docker, while running the React client
 
 #### Steps:
 
-##### 1. Start the Database Container
+##### 1. Configure local settings
+Create `.env` from `.env.example` as shown in Option A. Native API startup reads the same settings through .NET environment variables or your IDE launch profile.
+
+##### 2. Start the Database Container
 Ensure Docker Desktop is open and run the following command to spin up a local SQL Server instance:
 ```powershell
-docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=YourStrong@Passw0rd" -p 1433:1433 --name taskie-sqlserver -d mcr.microsoft.com/mssql/server:2022-latest
+docker compose up -d db
 ```
 *(If the container is already created, just start it using: `docker start taskie-sqlserver`)*
 
-##### 2. Apply Code-First Migrations
+##### 3. Apply Code-First Migrations
 Ensure the Entity Framework Core global tool is installed:
 ```powershell
 dotnet tool install --global dotnet-ef
@@ -105,14 +113,14 @@ dotnet ef database update
 ```
 *(Note: To seed the default administrator account `admin@taskie.com` and sample boards, run the SQL script `docs/Taskie.sql` inside your database client).*
 
-##### 3. Start the Backend API
+##### 4. Start the Backend API
 Start the Web API with hot-reload enabled:
 ```powershell
 dotnet watch
 ```
 The server will boot and list its active ports (e.g. `http://localhost:5199`).
 
-##### 4. Start the React Frontend
+##### 5. Start the React Frontend
 Open another terminal, navigate to the `client` directory, install packages, and start the Vite dev server:
 ```powershell
 cd client
@@ -126,5 +134,5 @@ Open your browser and navigate to `http://localhost:5173`.
 ## 🔒 Security & Architecture Notes
 * **Authentication:** The project transitioned from session-based cookie cookies to stateless **JWT Token authentication** in `.NET 10.0`.
 * **Password Hashing:** Upgraded to **BCrypt** (via `BCrypt.Net-Next`) to ensure secure salted password hashing, including work-factor tuning. A SHA256 fallback is included for legacy database compatibilities.
-* **CORS Policy:** Strict origin control is implemented in `Program.cs` allowing only the designated local frontend port (`http://localhost:5173`) with allowed request headers and methods.
+* **Configuration:** Database credentials, JWT signing settings, CORS origins, and the frontend API URL are supplied through environment variables (`.env` for Docker Compose; .NET/Vite environment settings for native development).
 * **Clean Code Separation:** Business database logic is decoupled from Controllers via the **Repository Pattern** to ensure testability and isolation.
