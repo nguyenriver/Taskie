@@ -13,24 +13,15 @@ namespace TaskieWNC.Controllers
     {
         private readonly UserRepository _userRepository;
         private readonly BoardRepository _boardRepository;
-        private readonly ListRepository _listRepository;
-        private readonly CardRepository _cardRepository;
-        private readonly CommentRepository _commentRepository;
         private readonly BoardMemberRepository _boardMemberRepository;
 
         public AdminController(
             UserRepository userRepository,
             BoardRepository boardRepository,
-            ListRepository listRepository,
-            CardRepository cardRepository,
-            CommentRepository commentRepository,
             BoardMemberRepository boardMemberRepository)
         {
             _userRepository = userRepository;
             _boardRepository = boardRepository;
-            _listRepository = listRepository;
-            _cardRepository = cardRepository;
-            _commentRepository = commentRepository;
             _boardMemberRepository = boardMemberRepository;
         }
 
@@ -41,18 +32,29 @@ namespace TaskieWNC.Controllers
         [HttpPost("users/add")]
         public IActionResult AddUser([FromBody] AddUserRequest request)
         {
-            if (_userRepository.EmailExists(request.Email))
+            if (!PasswordPolicy.TryValidate(request.Password, out string passwordError))
+            {
+                return BadRequest(new { success = false, message = passwordError });
+            }
+
+            if (!SystemRoles.TryNormalize(request.Role, out string normalizedRole))
+            {
+                return BadRequest(new { success = false, message = "System role must be User or Admin." });
+            }
+
+            var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+            if (_userRepository.EmailExists(normalizedEmail))
             {
                 return BadRequest(new { success = false, message = "Email already exists." });
             }
 
             var user = new UserModel
             {
-                FullName = request.FullName,
-                Email = request.Email,
+                FullName = request.FullName.Trim(),
+                Email = normalizedEmail,
                 PasswordHash = AuthService.HashPassword(request.Password),
-                Role = request.Role,
-                VerifyKey = request.VerifyKey
+                Role = normalizedRole,
+                VerifyKey = string.IsNullOrWhiteSpace(request.VerifyKey) ? null : request.VerifyKey.Trim()
             };
 
             _userRepository.Register(user);
@@ -65,8 +67,28 @@ namespace TaskieWNC.Controllers
             var user = _userRepository.GetUserById(request.UserID);
             if (user == null) return NotFound(new { success = false, message = "User not found." });
 
-            if (request.Field == "FullName") user.FullName = request.Value;
-            if (request.Field == "Role") user.Role = request.Value;
+            if (request.Field == "FullName")
+            {
+                if (string.IsNullOrWhiteSpace(request.Value))
+                {
+                    return BadRequest(new { success = false, message = "Full name cannot be empty." });
+                }
+
+                user.FullName = request.Value.Trim();
+            }
+            else if (request.Field == "Role")
+            {
+                if (!SystemRoles.TryNormalize(request.Value, out string normalizedRole))
+                {
+                    return BadRequest(new { success = false, message = "System role must be User or Admin." });
+                }
+
+                user.Role = normalizedRole;
+            }
+            else
+            {
+                return BadRequest(new { success = false, message = "Field must be FullName or Role." });
+            }
 
             _userRepository.UpdateUser(user);
             return Ok(new { success = true, message = "User updated successfully.", user = UserDto.FromModel(user) });
@@ -124,148 +146,6 @@ namespace TaskieWNC.Controllers
 
             _boardRepository.DeleteBoard(boardId);
             return Ok(new { success = true, message = "Board deleted successfully." });
-        }
-
-        // List CRUD
-        [HttpGet("lists")]
-        public IActionResult GetLists() => Ok(_listRepository.GetAllLists());
-
-        [HttpPost("lists/add")]
-        public IActionResult AddList([FromBody] AddListRequest request)
-        {
-            var board = _boardRepository.GetBoardById(request.BoardID);
-            if (board == null)
-            {
-                return NotFound(new { success = false, message = "BoardID does not exist." });
-            }
-
-            var list = new ListModel
-            {
-                ListName = request.ListName,
-                BoardID = request.BoardID
-            };
-
-            _listRepository.AddList(list);
-            return Ok(new { success = true, message = "List added successfully.", list = list });
-        }
-
-        [HttpPut("lists/update")]
-        public IActionResult UpdateList([FromBody] UpdateListRequest request)
-        {
-            var list = _listRepository.GetListById(request.ListID);
-            if (list == null) return NotFound(new { success = false, message = "List not found." });
-
-            list.ListName = request.ListName;
-            _listRepository.UpdateList(list);
-            return Ok(new { success = true, message = "List updated successfully.", list = list });
-        }
-
-        [HttpDelete("lists/delete/{listId}")]
-        public IActionResult DeleteList(int listId)
-        {
-            var list = _listRepository.GetListById(listId);
-            if (list == null) return NotFound(new { success = false, message = "List not found." });
-
-            _listRepository.DeleteList(listId);
-            return Ok(new { success = true, message = "List deleted successfully." });
-        }
-
-        // Card CRUD
-        [HttpGet("cards")]
-        public IActionResult GetCards() => Ok(_cardRepository.GetAllCards());
-
-        [HttpPost("cards/add")]
-        public IActionResult AddCard([FromBody] AddCardRequest request)
-        {
-            var list = _listRepository.GetListById(request.ListID);
-            if (list == null)
-            {
-                return NotFound(new { success = false, message = "ListID does not exist." });
-            }
-
-            var card = new CardModel
-            {
-                CardName = request.CardName,
-                ListID = request.ListID,
-                Status = request.Status
-            };
-
-            _cardRepository.AddCard(card);
-            return Ok(new { success = true, message = "Card added successfully.", card = card });
-        }
-
-        [HttpPut("cards/update")]
-        public IActionResult UpdateCard([FromBody] UpdateCardRequest request)
-        {
-            var card = _cardRepository.GetCardById(request.CardID);
-            if (card == null) return NotFound(new { success = false, message = "Card not found." });
-
-            if (request.Field == "CardName") card.CardName = request.Value;
-            if (request.Field == "Status") card.Status = request.Value;
-
-            _cardRepository.UpdateCard(card);
-            return Ok(new { success = true, message = "Card updated successfully.", card = card });
-        }
-
-        [HttpDelete("cards/delete/{cardId}")]
-        public IActionResult DeleteCard(int cardId)
-        {
-            var card = _cardRepository.GetCardById(cardId);
-            if (card == null) return NotFound(new { success = false, message = "Card not found." });
-
-            _cardRepository.DeleteCard(cardId);
-            return Ok(new { success = true, message = "Card deleted successfully." });
-        }
-
-        // Comment CRUD
-        [HttpGet("comments")]
-        public IActionResult GetComments() => Ok(_commentRepository.GetAllComments());
-
-        [HttpPost("comments/add")]
-        public IActionResult AddComment([FromBody] AddCommentRequest request)
-        {
-            var card = _cardRepository.GetCardById(request.CardID);
-            if (card == null)
-            {
-                return NotFound(new { success = false, message = "CardID does not exist." });
-            }
-
-            var user = _userRepository.GetUserById(request.UserID);
-            if (user == null)
-            {
-                return NotFound(new { success = false, message = "UserID does not exist." });
-            }
-
-            var comment = new CommentModel
-            {
-                CardID = request.CardID,
-                UserID = request.UserID,
-                Content = request.Content
-            };
-
-            _commentRepository.CreateComment(comment);
-            return Ok(new { success = true, message = "Comment added successfully.", comment = comment });
-        }
-
-        [HttpPut("comments/update")]
-        public IActionResult UpdateComment([FromBody] UpdateCommentRequest request)
-        {
-            var comment = _commentRepository.GetCommentById(request.CommentID);
-            if (comment == null) return NotFound(new { success = false, message = "Comment not found." });
-
-            comment.Content = request.Content;
-            _commentRepository.UpdateComment(comment);
-            return Ok(new { success = true, message = "Comment updated successfully.", comment = comment });
-        }
-
-        [HttpDelete("comments/delete/{commentId}")]
-        public IActionResult DeleteComment(int commentId)
-        {
-            var comment = _commentRepository.GetCommentById(commentId);
-            if (comment == null) return NotFound(new { success = false, message = "Comment not found." });
-
-            _commentRepository.DeleteComment(commentId);
-            return Ok(new { success = true, message = "Comment deleted successfully." });
         }
 
         [HttpGet("boardmembers/{boardId}")]

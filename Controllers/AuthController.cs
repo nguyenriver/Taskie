@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 using TaskieWNC.Models;
 using TaskieWNC.Services;
 
@@ -25,17 +26,24 @@ namespace TaskieWNC.Controllers
                 return BadRequest(new { success = false, message = "Passwords do not match." });
             }
 
-            if (_userRepository.EmailExists(request.Email))
+            if (!PasswordPolicy.TryValidate(request.Password, out string passwordError))
+            {
+                return BadRequest(new { success = false, message = passwordError });
+            }
+
+            var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
+            if (_userRepository.EmailExists(normalizedEmail))
             {
                 return BadRequest(new { success = false, message = "Email already exists." });
             }
 
             var user = new UserModel
             {
-                FullName = request.FullName,
-                Email = request.Email,
+                FullName = request.FullName.Trim(),
+                Email = normalizedEmail,
                 PasswordHash = AuthService.HashPassword(request.Password),
-                Role = "User"
+                Role = SystemRoles.User
             };
 
             _userRepository.Register(user);
@@ -51,7 +59,7 @@ namespace TaskieWNC.Controllers
                 return BadRequest(new { success = false, message = "Email and password are required." });
             }
 
-            var user = _userRepository.GetUserByEmail(request.Email);
+            var user = _userRepository.GetUserByEmail(request.Email.Trim().ToLowerInvariant());
             if (user == null || !AuthService.VerifyPassword(request.Password, user.PasswordHash))
             {
                 return Unauthorized(new { success = false, message = "Invalid email or password." });
@@ -77,15 +85,31 @@ namespace TaskieWNC.Controllers
 
     public class RegisterRequest
     {
+        [Required]
+        [StringLength(255, MinimumLength = 1)]
         public string FullName { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        [StringLength(255)]
         public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(128, MinimumLength = 8)]
         public string Password { get; set; } = string.Empty;
+
+        [Required]
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 
     public class LoginRequest
     {
+        [Required]
+        [EmailAddress]
+        [StringLength(255)]
         public string Email { get; set; } = string.Empty;
+
+        [Required]
         public string Password { get; set; } = string.Empty;
     }
 }

@@ -3,13 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { Navbar } from '../components/Navbar';
 import { 
-  Users as UsersIcon, Layout, List as ListIcon, CreditCard, MessageSquare, 
+  Users as UsersIcon, Layout,
   UserPlus, ShieldAlert, Plus, Trash2, Edit, AlertCircle, Search 
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'users' | 'boards' | 'lists' | 'cards' | 'comments' | 'members'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'boards' | 'members'>('users');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -17,9 +17,6 @@ export const AdminPage: React.FC = () => {
   // Data lists
   const [usersList, setUsersList] = useState<any[]>([]);
   const [boardsList, setBoardsList] = useState<any[]>([]);
-  const [listsList, setListsList] = useState<any[]>([]);
-  const [cardsList, setCardsList] = useState<any[]>([]);
-  const [commentsList, setCommentsList] = useState<any[]>([]);
   const [membersList, setMembersList] = useState<any[]>([]);
 
   // Simple create/edit inputs states
@@ -37,15 +34,6 @@ export const AdminPage: React.FC = () => {
       } else if (activeTab === 'boards') {
         const data = await api.get<any[]>('/admin/boards');
         setBoardsList(data);
-      } else if (activeTab === 'lists') {
-        const data = await api.get<any[]>('/admin/lists');
-        setListsList(data);
-      } else if (activeTab === 'cards') {
-        const data = await api.get<any[]>('/admin/cards');
-        setCardsList(data);
-      } else if (activeTab === 'comments') {
-        const data = await api.get<any[]>('/admin/comments');
-        setCommentsList(data);
       } else if (activeTab === 'members') {
         const data = await api.get<any[]>('/admin/boardmembers');
         setMembersList(data);
@@ -69,9 +57,6 @@ export const AdminPage: React.FC = () => {
       let path = '';
       if (activeTab === 'users') path = `/admin/users/delete/${id1}`;
       else if (activeTab === 'boards') path = `/admin/boards/delete/${id1}`;
-      else if (activeTab === 'lists') path = `/admin/lists/delete/${id1}`;
-      else if (activeTab === 'cards') path = `/admin/cards/delete/${id1}`;
-      else if (activeTab === 'comments') path = `/admin/comments/delete/${id1}`;
       else if (activeTab === 'members') path = `/admin/boardmembers/delete/${id1}/${id2}`;
 
       await api.delete(path);
@@ -99,15 +84,6 @@ export const AdminPage: React.FC = () => {
       } else if (activeTab === 'boards') {
         path = '/admin/boards/add';
         payload = { boardName: formData.boardName, userID: parseInt(formData.userID) };
-      } else if (activeTab === 'lists') {
-        path = '/admin/lists/add';
-        payload = { listName: formData.listName, boardID: parseInt(formData.boardID) };
-      } else if (activeTab === 'cards') {
-        path = '/admin/cards/add';
-        payload = { cardName: formData.cardName, listID: parseInt(formData.listID), status: formData.status || 'To Do' };
-      } else if (activeTab === 'comments') {
-        path = '/admin/comments/add';
-        payload = { cardID: parseInt(formData.cardID), userID: parseInt(formData.userID), content: formData.content };
       } else if (activeTab === 'members') {
         path = '/admin/boardmembers/add';
         payload = { boardID: parseInt(formData.boardID), userID: parseInt(formData.userID), role: formData.role || 'Viewer' };
@@ -134,15 +110,6 @@ export const AdminPage: React.FC = () => {
       } else if (activeTab === 'boards') {
         path = '/admin/boards/update';
         payload = { boardID: editModeId, boardName: formData.boardName };
-      } else if (activeTab === 'lists') {
-        path = '/admin/lists/update';
-        payload = { listID: editModeId, listName: formData.listName };
-      } else if (activeTab === 'cards') {
-        path = '/admin/cards/update';
-        payload = { cardID: editModeId, field: formData.field, value: formData.value };
-      } else if (activeTab === 'comments') {
-        path = '/admin/comments/update';
-        payload = { commentID: editModeId, content: formData.content };
       } else if (activeTab === 'members') {
         path = '/admin/boardmembers/update-role';
         payload = { boardID: editModeId.boardID, userID: editModeId.userID, role: formData.role };
@@ -182,15 +149,6 @@ export const AdminPage: React.FC = () => {
     if (activeTab === 'boards') {
       return boardsList.filter(b => b.boardName.toLowerCase().includes(search.toLowerCase()));
     }
-    if (activeTab === 'lists') {
-      return listsList.filter(l => l.listName.toLowerCase().includes(search.toLowerCase()));
-    }
-    if (activeTab === 'cards') {
-      return cardsList.filter(c => c.cardName.toLowerCase().includes(search.toLowerCase()));
-    }
-    if (activeTab === 'comments') {
-      return commentsList.filter(c => c.content.toLowerCase().includes(search.toLowerCase()));
-    }
     if (activeTab === 'members') {
       return membersList.filter(m => m.role.toLowerCase().includes(search.toLowerCase()));
     }
@@ -206,7 +164,7 @@ export const AdminPage: React.FC = () => {
       <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900">Admin Control Panel</h1>
-          <p className="text-slate-500 text-sm">Global CRUD system administration tools</p>
+          <p className="text-slate-500 text-sm">Account, board ownership, and membership administration</p>
         </div>
 
         {/* Tab Badges */}
@@ -214,9 +172,6 @@ export const AdminPage: React.FC = () => {
           {[
             { id: 'users', label: 'Users', icon: UsersIcon },
             { id: 'boards', label: 'Boards', icon: Layout },
-            { id: 'lists', label: 'Lists', icon: ListIcon },
-            { id: 'cards', label: 'Cards', icon: CreditCard },
-            { id: 'comments', label: 'Comments', icon: MessageSquare },
             { id: 'members', label: 'Board Members', icon: UserPlus },
           ].map(tab => (
             <button
@@ -322,49 +277,6 @@ export const AdminPage: React.FC = () => {
                 </>
               )}
 
-              {activeTab === 'lists' && (
-                <>
-                  <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-700">List Name</label>
-                    <input type="text" required onChange={e => setFormData({...formData, listName: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-700">Board ID</label>
-                    <input type="number" required onChange={e => setFormData({...formData, boardID: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
-                  </div>
-                </>
-              )}
-
-              {activeTab === 'cards' && (
-                <>
-                  <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-700">Card Name</label>
-                    <input type="text" required onChange={e => setFormData({...formData, cardName: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-700">List ID</label>
-                    <input type="number" required onChange={e => setFormData({...formData, listID: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
-                  </div>
-                </>
-              )}
-
-              {activeTab === 'comments' && (
-                <>
-                  <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-700">Content</label>
-                    <textarea required onChange={e => setFormData({...formData, content: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-700">Card ID</label>
-                    <input type="number" required onChange={e => setFormData({...formData, cardID: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-700">User ID</label>
-                    <input type="number" required onChange={e => setFormData({...formData, userID: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
-                  </div>
-                </>
-              )}
-
               {activeTab === 'members' && (
                 <>
                   <div className="space-y-1">
@@ -380,7 +292,6 @@ export const AdminPage: React.FC = () => {
                     <select onChange={e => setFormData({...formData, role: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm">
                       <option value="Viewer">Viewer</option>
                       <option value="Editor">Editor</option>
-                      <option value="Owner">Owner</option>
                     </select>
                   </div>
                 </>
@@ -421,37 +332,6 @@ export const AdminPage: React.FC = () => {
                 </div>
               )}
 
-              {activeTab === 'lists' && (
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-700">New List Name</label>
-                  <input type="text" required onChange={e => setFormData({...formData, listName: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
-                </div>
-              )}
-
-              {activeTab === 'cards' && (
-                <>
-                  <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-700">Field to edit</label>
-                    <select required onChange={e => setFormData({...formData, field: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm">
-                      <option value="">-- Select --</option>
-                      <option value="CardName">Card Name</option>
-                      <option value="Status">Status</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-700">New Value</label>
-                    <input type="text" required onChange={e => setFormData({...formData, value: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
-                  </div>
-                </>
-              )}
-
-              {activeTab === 'comments' && (
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-700">New Content</label>
-                  <textarea required onChange={e => setFormData({...formData, content: e.target.value})} className="w-full px-4 py-2 border rounded-lg text-sm" />
-                </div>
-              )}
-
               {activeTab === 'members' && (
                 <div className="space-y-1">
                   <label className="text-sm font-semibold text-slate-700">New Role</label>
@@ -459,7 +339,6 @@ export const AdminPage: React.FC = () => {
                     <option value="">-- Select --</option>
                     <option value="Viewer">Viewer</option>
                     <option value="Editor">Editor</option>
-                    <option value="Owner">Owner</option>
                   </select>
                 </div>
               )}
@@ -490,32 +369,6 @@ export const AdminPage: React.FC = () => {
                       <th className="px-6 py-4">ID</th>
                       <th className="px-6 py-4">Name</th>
                       <th className="px-6 py-4">Owner ID</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  )}
-                  {activeTab === 'lists' && (
-                    <tr>
-                      <th className="px-6 py-4">ID</th>
-                      <th className="px-6 py-4">Name</th>
-                      <th className="px-6 py-4">Board ID</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  )}
-                  {activeTab === 'cards' && (
-                    <tr>
-                      <th className="px-6 py-4">ID</th>
-                      <th className="px-6 py-4">Name</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4">List ID</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  )}
-                  {activeTab === 'comments' && (
-                    <tr>
-                      <th className="px-6 py-4">ID</th>
-                      <th className="px-6 py-4">Content</th>
-                      <th className="px-6 py-4">Card ID</th>
-                      <th className="px-6 py-4">User ID</th>
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   )}
@@ -558,45 +411,6 @@ export const AdminPage: React.FC = () => {
                             <td className="px-6 py-4 text-right flex items-center justify-end gap-2.5">
                               <button onClick={() => { setFormData({}); setEditModeId(item.boardID); }} className="p-1 text-slate-400 hover:text-brand-blue transition"><Edit className="w-4 h-4" /></button>
                               <button onClick={() => handleDelete(item.boardID)} className="p-1 text-slate-400 hover:text-rose-600 transition"><Trash2 className="w-4 h-4" /></button>
-                            </td>
-                          </>
-                        )}
-                        {activeTab === 'lists' && (
-                          <>
-                            <td className="px-6 py-4 font-mono text-slate-400">{item.listID}</td>
-                            <td className="px-6 py-4 font-bold text-slate-800">{item.listName}</td>
-                            <td className="px-6 py-4">{item.boardID}</td>
-                            <td className="px-6 py-4 text-right flex items-center justify-end gap-2.5">
-                              <button onClick={() => { setFormData({}); setEditModeId(item.listID); }} className="p-1 text-slate-400 hover:text-brand-blue transition"><Edit className="w-4 h-4" /></button>
-                              <button onClick={() => handleDelete(item.listID)} className="p-1 text-slate-400 hover:text-rose-600 transition"><Trash2 className="w-4 h-4" /></button>
-                            </td>
-                          </>
-                        )}
-                        {activeTab === 'cards' && (
-                          <>
-                            <td className="px-6 py-4 font-mono text-slate-400">{item.cardID}</td>
-                            <td className="px-6 py-4 font-bold text-slate-800">{item.cardName}</td>
-                            <td className="px-6 py-4">
-                              <span className="text-xs px-2 py-0.5 bg-blue-50 text-brand-blue font-bold rounded">
-                                {item.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">{item.listID}</td>
-                            <td className="px-6 py-4 text-right flex items-center justify-end gap-2.5">
-                              <button onClick={() => { setFormData({}); setEditModeId(item.cardID); }} className="p-1 text-slate-400 hover:text-brand-blue transition"><Edit className="w-4 h-4" /></button>
-                              <button onClick={() => handleDelete(item.cardID)} className="p-1 text-slate-400 hover:text-rose-600 transition"><Trash2 className="w-4 h-4" /></button>
-                            </td>
-                          </>
-                        )}
-                        {activeTab === 'comments' && (
-                          <>
-                            <td className="px-6 py-4 font-mono text-slate-400">{item.commentID}</td>
-                            <td className="px-6 py-4 font-bold text-slate-800 line-clamp-1 max-w-[200px]">{item.content}</td>
-                            <td className="px-6 py-4">{item.cardID}</td>
-                            <td className="px-6 py-4">{item.userID}</td>
-                            <td className="px-6 py-4 text-right flex items-center justify-end gap-2.5">
-                              <button onClick={() => { setFormData({}); setEditModeId(item.commentID); }} className="p-1 text-slate-400 hover:text-brand-blue transition"><Edit className="w-4 h-4" /></button>
-                              <button onClick={() => handleDelete(item.commentID)} className="p-1 text-slate-400 hover:text-rose-600 transition"><Trash2 className="w-4 h-4" /></button>
                             </td>
                           </>
                         )}
