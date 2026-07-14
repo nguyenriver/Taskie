@@ -66,7 +66,7 @@ namespace TaskieWNC.Controllers
                 token = token,
                 user = new
                 {
-                    id = user.UserID,
+                    userID = user.UserID,
                     email = user.Email,
                     fullName = user.FullName,
                     role = user.Role
