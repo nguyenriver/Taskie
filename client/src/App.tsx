@@ -12,6 +12,7 @@ import { AboutPage } from './pages/AboutPage';
 import { FeaturesPage } from './pages/FeaturesPage';
 import { PricingPage } from './pages/PricingPage';
 import { ContactPage } from './pages/ContactPage';
+import { ScrollToTop } from './components/ScrollToTop';
 
 // Protected Route Guard
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -36,6 +37,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
