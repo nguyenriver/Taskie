@@ -48,6 +48,8 @@ export const BoardPage: React.FC = () => {
   // Drag states
   const [draggedListIndex, setDraggedListIndex] = useState<number | null>(null);
   const [draggedCardInfo, setDraggedCardInfo] = useState<{ cardId: number; sourceListId: number } | null>(null);
+  const [dragOverListId, setDragOverListId] = useState<number | null>(null);
+  const [dragOverCardIndex, setDragOverCardIndex] = useState<number | null>(null);
 
   const fetchBoardDetails = async () => {
     try {
@@ -414,6 +416,8 @@ export const BoardPage: React.FC = () => {
 
     setLists(finalLists);
     setDraggedCardInfo(null);
+    setDragOverListId(null);
+    setDragOverCardIndex(null);
 
     // Call API to persist reordered card positions inside target list
     const targetListObj = finalLists.find(l => l.listID === targetListId);
@@ -452,6 +456,8 @@ export const BoardPage: React.FC = () => {
 
   const handleCardDragEnd = () => {
     setDraggedCardInfo(null);
+    setDragOverListId(null);
+    setDragOverCardIndex(null);
   };
 
   return (
@@ -545,51 +551,76 @@ export const BoardPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Cards Container */}
-                <div className="flex-grow overflow-y-auto space-y-2.5 pb-2 scrollbar-thin">
-                  {(list.cards || []).map((card, cardIndex) => (
-                    <div
-                      key={card.cardID}
-                      draggable={userRole !== 'Viewer'}
-                      onDragStart={(e) => handleCardDragStart(e, card.cardID, list.listID)}
-                      onDragEnd={handleCardDragEnd}
-                      onDragOver={(e) => {
-                        if (draggedCardInfo) {
-                          e.preventDefault();
-                        }
-                      }}
-                      onDrop={(e) => {
-                        if (draggedCardInfo) {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleCardDrop(e, list.listID, cardIndex);
-                        }
-                      }}
-                      onClick={() => handleOpenCard(card)}
-                      className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:shadow hover:border-blue-400 transition duration-300 cursor-pointer space-y-2.5"
-                    >
-                      <span className="font-semibold text-slate-800 text-sm block leading-snug">
-                        {card.cardName}
-                      </span>
-                      
-                      {/* Card Badges */}
-                      <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-50 text-slate-400">
-                        <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
-                          card.status === 'Done' ? 'bg-green-50 text-green-700' :
-                          card.status === 'In Progress' ? 'bg-yellow-50 text-yellow-700' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {card.status}
-                        </span>
+                 {/* Cards Container */}
+                <div 
+                  className="flex-grow overflow-y-auto space-y-2.5 pb-2 scrollbar-thin"
+                  onDragOver={(e) => {
+                    if (draggedCardInfo) {
+                      e.preventDefault();
+                      if (e.target === e.currentTarget) {
+                        setDragOverListId(list.listID);
+                        setDragOverCardIndex((list.cards || []).length);
+                      }
+                    }
+                  }}
+                >
+                  {(list.cards || []).map((card, cardIndex) => {
+                    const showPlaceholderHere = draggedCardInfo && dragOverListId === list.listID && dragOverCardIndex === cardIndex;
 
-                        {card.dueDate && (
-                          <span className="flex items-center gap-1 font-medium">
-                            <Calendar className="w-3.5 h-3.5" />
-                            {new Date(card.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                          </span>
+                    return (
+                      <React.Fragment key={card.cardID}>
+                        {showPlaceholderHere && (
+                          <div className="h-14 border-2 border-dashed border-blue-400/60 rounded-xl bg-blue-50/50 animate-pulse transition duration-200" />
                         )}
-                      </div>
-                    </div>
-                  ))}
+                        <div
+                          draggable={userRole !== 'Viewer'}
+                          onDragStart={(e) => handleCardDragStart(e, card.cardID, list.listID)}
+                          onDragEnd={handleCardDragEnd}
+                          onDragOver={(e) => {
+                            if (draggedCardInfo) {
+                              e.preventDefault();
+                              setDragOverListId(list.listID);
+                              setDragOverCardIndex(cardIndex);
+                            }
+                          }}
+                          onDrop={(e) => {
+                            if (draggedCardInfo) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleCardDrop(e, list.listID, cardIndex);
+                            }
+                          }}
+                          onClick={() => handleOpenCard(card)}
+                          className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:shadow hover:border-blue-400 transition duration-300 cursor-pointer space-y-2.5"
+                        >
+                          <span className="font-semibold text-slate-800 text-sm block leading-snug">
+                            {card.cardName}
+                          </span>
+                          
+                          {/* Card Badges */}
+                          <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-50 text-slate-400">
+                            <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
+                              card.status === 'Done' ? 'bg-green-50 text-green-700' :
+                              card.status === 'In Progress' ? 'bg-yellow-50 text-yellow-700' : 'bg-slate-100 text-slate-500'
+                            }`}>
+                              {card.status}
+                            </span>
+
+                            {card.dueDate && (
+                              <span className="flex items-center gap-1 font-medium">
+                                <Calendar className="w-3.5 h-3.5" />
+                                {new Date(card.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+
+                  {draggedCardInfo && dragOverListId === list.listID && dragOverCardIndex === (list.cards || []).length && (
+                    <div className="h-14 border-2 border-dashed border-blue-400/60 rounded-xl bg-blue-50/50 animate-pulse transition duration-200" />
+                  )}
                 </div>
 
                 {/* Add Card Footer */}
