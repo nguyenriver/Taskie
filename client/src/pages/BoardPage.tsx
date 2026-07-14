@@ -357,6 +357,7 @@ export const BoardPage: React.FC = () => {
 
   // Custom HTML5 Drag & Drop: CARDS
   const handleCardDragStart = (e: React.DragEvent, cardId: number, sourceListId: number) => {
+    e.stopPropagation(); // Stop drag event from bubbling up to the draggable list container
     if (userRole === 'Viewer') return;
     setDraggedCardInfo({ cardId, sourceListId });
     e.dataTransfer.effectAllowed = 'move';
