@@ -552,7 +552,9 @@ export const BoardPage: React.FC = () => {
                     handleCardDrop(e, list.listID);
                   }
                 }}
-                className="w-72 shrink-0 bg-slate-100 rounded-2xl border border-slate-200/60 p-4 flex flex-col max-h-[calc(100vh-180px)] shadow-lg"
+                className={`w-72 shrink-0 bg-slate-100 rounded-2xl border border-slate-200/60 p-4 flex flex-col max-h-[calc(100vh-180px)] shadow-lg transition-all duration-300 ${
+                  draggedListIndex === listIndex ? 'opacity-40 border-dashed border-blue-400' : ''
+                }`}
               >
                 {/* List Header */}
                 <div className="flex items-center justify-between pb-3">
