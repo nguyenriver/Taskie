@@ -22,3 +22,12 @@ body {
   box-shadow: none !important;
   border-color: transparent !important;
 }
+
+button,
+a,
+select,
+input[type="button"],
+input[type="submit"],
+[role="button"] {
+  cursor: pointer !important;
+}
