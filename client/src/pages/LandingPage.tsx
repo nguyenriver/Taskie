@@ -16,9 +16,9 @@ export const LandingPage: React.FC = () => {
         <span className="text-center md:text-left px-4 text-sm">
           Accelerate your teams' work with Taskie now available for all Premium and Enterprise!
         </span>
-        <a href="#" className="text-blue-600 hover:text-blue-700 underline text-sm font-semibold transition">
+        <Link to="/pricing" className="text-blue-600 hover:text-blue-700 underline text-sm font-semibold transition">
           Learn more
-        </a>
+        </Link>
       </div>
 
       {/* Hero Section */}
