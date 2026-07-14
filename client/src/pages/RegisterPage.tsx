@@ -23,7 +23,7 @@ export const RegisterPage: React.FC = () => {
 
     try {
       // 1. Register the user
-      const registerData = await api.post<any>('/auth/register', { fullName, email, password });
+      const registerData = await api.post<any>('/auth/register', { fullName, email, password, confirmPassword: password });
       
       if (registerData.success) {
         // 2. Automatically log them in after registration

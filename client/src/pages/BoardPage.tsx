@@ -112,9 +112,9 @@ export const BoardPage: React.FC = () => {
     if (!newListName.trim() || userRole === 'Viewer') return;
 
     try {
-      const response = await api.post<{ success: boolean; list: List }>('/list/create', {
+      const response = await api.post<{ success: boolean; list: List }>('/list/add', {
         listName: newListName,
-        boardID: boardId
+        boardId: boardId
       });
       
       if (response.success && response.list) {
@@ -143,7 +143,7 @@ export const BoardPage: React.FC = () => {
     if (!newCardName.trim() || userRole === 'Viewer') return;
 
     try {
-      const response = await api.post<{ success: boolean; card: Card }>('/card/create', {
+      const response = await api.post<{ success: boolean; card: Card }>('/card/add', {
         cardName: newCardName,
         listID: listId,
         status: 'To Do'
@@ -177,8 +177,8 @@ export const BoardPage: React.FC = () => {
 
     try {
       // Get Comments
-      const response = await api.get<Comment[]>(`/card/comments/${card.cardID}`);
-      setComments(response);
+      const response = await api.get<{ success: boolean; comments: Comment[] }>(`/card/${card.cardID}/comments`);
+      setComments(response.comments || []);
     } catch (err) {
       console.error('Failed to load card comments');
     }
@@ -242,8 +242,7 @@ export const BoardPage: React.FC = () => {
     if (!newComment.trim() || !activeCard) return;
 
     try {
-      const response = await api.post<{ success: boolean; comment: Comment }>('/card/comments/create', {
-        cardID: activeCard.cardID,
+      const response = await api.post<{ success: boolean; comment: Comment }>(`/card/${activeCard.cardID}/comments/add`, {
         content: newComment
       });
       if (response.success && response.comment) {
@@ -280,8 +279,8 @@ export const BoardPage: React.FC = () => {
     setShareOpen(true);
     setInviteError(null);
     try {
-      const data = await api.get<BoardMember[]>(`/boardmember/${boardId}`);
-      setMembers(data);
+      const response = await api.get<{ success: boolean; members: BoardMember[] }>(`/boardmember/board/${boardId}`);
+      setMembers(response.members || []);
     } catch (err) {
       console.error('Failed to load board members');
     }
@@ -294,14 +293,14 @@ export const BoardPage: React.FC = () => {
     setInviteError(null);
 
     try {
-      const response = await api.post<{ success: boolean; message: string; boardMember: BoardMember }>('/boardmember/invite', {
-        boardID: boardId,
+      const response = await api.post<{ success: boolean; message: string; member: BoardMember }>('/boardmember/invite', {
+        boardId: boardId,
         email: inviteEmail,
         role: inviteRole
       });
 
-      if (response.success && response.boardMember) {
-        setMembers([...members, response.boardMember]);
+      if (response.success && response.member) {
+        setMembers([...members, response.member]);
         setInviteEmail('');
       } else {
         setInviteError(response.message || 'Invitation failed.');
@@ -346,7 +345,7 @@ export const BoardPage: React.FC = () => {
 
     // Call API to persist reorder positions
     try {
-      await api.put('/list/reorder', reordered.map(l => ({ listId: l.listID, position: l.position })));
+      await api.put('/list/update-positions', reordered.map(l => ({ listID: l.listID, position: l.position })));
     } catch (err) {
       console.error('Failed to save list order');
     }
@@ -402,10 +401,9 @@ export const BoardPage: React.FC = () => {
 
     // Call API to persist list re-assignment
     try {
-      await api.put('/card/reorder', {
+      await api.put('/card/move', {
         cardID: cardId,
-        listID: targetListId,
-        position: 1 // default position
+        listID: targetListId
       });
     } catch (err) {
       console.error('Failed to move card in database');
