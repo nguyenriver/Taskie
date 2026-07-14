@@ -28,23 +28,23 @@ async function request<T>(path: string, method: string, options: RequestOptions 
 
   const response = await fetch(`${API_BASE_URL}${path}`, config);
 
-  if (response.status === 401) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.dispatchEvent(new Event('auth-change'));
-    throw new Error('Unauthorized');
-  }
-
-  if (response.status === 403) {
-    throw new Error('Forbidden');
-  }
-
   const text = await response.text();
   let data;
   try {
     data = text ? JSON.parse(text) : {};
   } catch (e) {
     data = { message: text };
+  }
+
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.dispatchEvent(new Event('auth-change'));
+    throw new Error(data.message || 'Your session has expired. Please sign in again.');
+  }
+
+  if (response.status === 403) {
+    throw new Error(data.message || 'You do not have permission to perform this action.');
   }
 
   if (!response.ok) {
