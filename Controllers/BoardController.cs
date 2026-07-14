@@ -11,14 +11,20 @@ namespace TaskieWNC.Controllers
     {
         private readonly BoardRepository _boardRepository;
         private readonly BoardMemberRepository _boardMemberRepository;
+        private readonly ListRepository _listRepository;
+        private readonly CardRepository _cardRepository;
 
         public BoardController(
             UserRepository userRepository,
             BoardRepository boardRepository,
-            BoardMemberRepository boardMemberRepository) : base(userRepository)
+            BoardMemberRepository boardMemberRepository,
+            ListRepository listRepository,
+            CardRepository cardRepository) : base(userRepository)
         {
             _boardRepository = boardRepository;
             _boardMemberRepository = boardMemberRepository;
+            _listRepository = listRepository;
+            _cardRepository = cardRepository;
         }
 
         [HttpGet("{boardId}")]
@@ -57,6 +63,22 @@ namespace TaskieWNC.Controllers
                 }
             }
 
+            // Load board lists and cards
+            var lists = _listRepository.GetListsByBoardId(boardId)
+                                      .OrderBy(l => l.Position)
+                                      .ToList();
+
+            var listsWithCards = lists.Select(list => new
+            {
+                list.ListID,
+                list.ListName,
+                list.Position,
+                list.BoardID,
+                Cards = _cardRepository.GetCardsByListId(list.ListID)
+                                       .OrderBy(c => c.Position)
+                                       .ToList()
+            }).ToList();
+
             return Ok(new
             {
                 success = true,
@@ -64,7 +86,14 @@ namespace TaskieWNC.Controllers
                 boardName = board.BoardName,
                 isOwner = isOwner,
                 userRole = userRole,
-                boardDetails = board
+                boardDetails = new
+                {
+                    board.BoardID,
+                    board.BoardName,
+                    board.UserID,
+                    board.CreatedAt,
+                    lists = listsWithCards
+                }
             });
         }
 
