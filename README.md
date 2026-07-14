@@ -101,6 +101,17 @@ This setup launches the entire stack (Database, C# API, Nginx frontend server) i
 #### Prerequisites
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
 
+The repository also includes [go-task](https://taskfile.dev/) and a `Taskfile.yml` for repeatable commands:
+
+```powershell
+task start:bg          # build and start the full stack
+task database:init     # initialize only when TaskieDB is missing
+task update:frontend   # rebuild only the frontend
+task database:reset    # explicit destructive reset and reseed
+```
+
+`task database:reset` deletes all local TaskieDB data. It is never run automatically.
+
 #### Steps:
 1. Create your local environment file from the example:
    ```powershell

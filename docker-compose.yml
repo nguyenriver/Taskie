@@ -26,9 +26,30 @@ services:
     environment:
       SA_PASSWORD: "${SA_PASSWORD:?SA_PASSWORD must be set in .env}"
     entrypoint: /bin/bash -c "
+      set -e;
       echo 'SQL Server is ready. Running schema script...';
-      /opt/mssql-tools/bin/sqlcmd -S db -U sa -P \"$${SA_PASSWORD}\" -i /usr/config/Taskie.sql;
-      echo 'Database initialization complete.';
+      database_exists=$$(/opt/mssql-tools/bin/sqlcmd -S db -U sa -P \"$${SA_PASSWORD}\" -h -1 -W -Q \"SET NOCOUNT ON; SELECT CASE WHEN DB_ID(N'TaskieDB') IS NULL THEN 0 ELSE 1 END\" | tr -d '[:space:]');
+      if [ \"$${database_exists}\" = \"0\" ]; then
+        /opt/mssql-tools/bin/sqlcmd -S db -U sa -P \"$${SA_PASSWORD}\" -i /usr/config/Taskie.sql;
+        echo 'Database initialization complete.';
+      else
+        echo 'TaskieDB already exists. Skipping initialization to preserve data.';
+      fi;
+      "
+
+  db-reset:
+    image: mcr.microsoft.com/mssql-tools
+    profiles: ["reset"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SA_PASSWORD: "${SA_PASSWORD:?SA_PASSWORD must be set in .env}"
+    entrypoint: /bin/bash -c "
+      set -e;
+      echo 'Resetting TaskieDB...';
+      /opt/mssql-tools/bin/sqlcmd -S db -U sa -P \"$${SA_PASSWORD}\" -Q \"IF DB_ID(N'TaskieDB') IS NOT NULL BEGIN ALTER DATABASE [TaskieDB] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [TaskieDB]; END\";
+      echo 'TaskieDB reset complete.';
       "
 
   backend:

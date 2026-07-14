@@ -1,0 +1,38 @@
+version: '3'
+
+tasks:
+  default:
+    desc: "List available Taskie commands"
+    cmds:
+      - task --list
+
+  start:
+    desc: "Build and start the full Docker Compose stack"
+    cmds:
+      - docker compose up --build {{.CLI_ARGS}}
+
+  start:bg:
+    desc: "Build and start the full Docker Compose stack in the background"
+    cmds:
+      - docker compose up -d --build {{.CLI_ARGS}}
+
+  database:init:
+    desc: "Start SQL Server and initialize TaskieDB without deleting existing data"
+    cmds:
+      - docker compose up -d db
+      - docker compose run --rm init-db
+
+  database:reset:
+    desc: "Destructively reset TaskieDB, then initialize the seed data"
+    cmds:
+      - docker compose stop backend frontend
+      - docker compose up -d db
+      - docker compose --profile reset run --rm db-reset
+      - docker compose run --rm init-db
+      - docker compose up -d backend frontend
+
+  update:frontend:
+    desc: "Rebuild and restart only the frontend without restarting dependencies"
+    cmds:
+      - docker compose build frontend
+      - docker compose up -d --no-deps frontend
