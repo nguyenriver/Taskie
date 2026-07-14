@@ -363,7 +363,7 @@ export const BoardPage: React.FC = () => {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleCardDrop = async (e: React.DragEvent, targetListId: number) => {
+  const handleCardDrop = async (e: React.DragEvent, targetListId: number, targetCardIndex?: number) => {
     e.preventDefault();
     if (!draggedCardInfo || userRole === 'Viewer') return;
 
@@ -375,13 +375,7 @@ export const BoardPage: React.FC = () => {
 
     if (!cardObj) return;
 
-    // If dropped in the same list, do nothing or we can sort (simplifying to move list)
-    if (sourceListId === targetListId) {
-      setDraggedCardInfo(null);
-      return;
-    }
-
-    // Move between lists
+    // 1. Remove card from source list
     const updatedLists = lists.map(list => {
       if (list.listID === sourceListId) {
         return {
@@ -389,29 +383,70 @@ export const BoardPage: React.FC = () => {
           cards: (list.cards || []).filter(c => c.cardID !== cardId)
         };
       }
+      return list;
+    });
+
+    // 2. Insert card into target list
+    const finalLists = updatedLists.map(list => {
       if (list.listID === targetListId) {
         const targetCards = [...(list.cards || [])];
-        // Insert card at the end of the new list
-        const updatedCard = { ...cardObj, listID: targetListId, position: targetCards.length + 1 };
+        const updatedCard = { ...cardObj, listID: targetListId };
+
+        if (targetCardIndex !== undefined) {
+          targetCards.splice(targetCardIndex, 0, updatedCard);
+        } else {
+          targetCards.push(updatedCard);
+        }
+
+        // Re-calculate positions (1-indexed)
+        const reorderedCards = targetCards.map((c, idx) => ({
+          ...c,
+          position: idx + 1
+        }));
+
         return {
           ...list,
-          cards: [...targetCards, updatedCard]
+          cards: reorderedCards
         };
       }
       return list;
     });
 
-    setLists(updatedLists);
+    setLists(finalLists);
     setDraggedCardInfo(null);
 
-    // Call API to persist list re-assignment
+    // Call API to persist reordered card positions inside target list
+    const targetListObj = finalLists.find(l => l.listID === targetListId);
+    if (!targetListObj || !targetListObj.cards) return;
+
     try {
-      await api.put('/card/move', {
-        cardID: cardId,
-        listID: targetListId
-      });
+      if (sourceListId !== targetListId) {
+        await api.put('/card/move', {
+          cardID: cardId,
+          listID: targetListId
+        });
+      }
+
+      const positionUpdates = targetListObj.cards.map((c) => ({
+        cardID: c.cardID,
+        position: c.position
+      }));
+      await api.put('/card/update-positions', positionUpdates);
+
+      if (sourceListId !== targetListId) {
+        const sourceListObj = finalLists.find(l => l.listID === sourceListId);
+        if (sourceListObj && sourceListObj.cards) {
+          const sourceUpdates = sourceListObj.cards.map((c) => ({
+            cardID: c.cardID,
+            position: c.position
+          }));
+          if (sourceUpdates.length > 0) {
+            await api.put('/card/update-positions', sourceUpdates);
+          }
+        }
+      }
     } catch (err) {
-      console.error('Failed to move card in database');
+      console.error('Failed to move and reorder cards in database');
     }
   };
 
@@ -512,12 +547,24 @@ export const BoardPage: React.FC = () => {
 
                 {/* Cards Container */}
                 <div className="flex-grow overflow-y-auto space-y-2.5 pb-2 scrollbar-thin">
-                  {(list.cards || []).map((card) => (
+                  {(list.cards || []).map((card, cardIndex) => (
                     <div
                       key={card.cardID}
                       draggable={userRole !== 'Viewer'}
                       onDragStart={(e) => handleCardDragStart(e, card.cardID, list.listID)}
                       onDragEnd={handleCardDragEnd}
+                      onDragOver={(e) => {
+                        if (draggedCardInfo) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onDrop={(e) => {
+                        if (draggedCardInfo) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleCardDrop(e, list.listID, cardIndex);
+                        }
+                      }}
                       onClick={() => handleOpenCard(card)}
                       className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:shadow hover:border-blue-400 transition duration-300 cursor-pointer space-y-2.5"
                     >
