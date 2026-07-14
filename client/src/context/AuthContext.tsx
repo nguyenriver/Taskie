@@ -28,6 +28,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Remove credentials left by pre-cookie versions of Taskie.
+    window.localStorage.removeItem('token');
+    window.localStorage.removeItem('user');
     loadAuth();
 
     const handleAuthExpired = () => {
