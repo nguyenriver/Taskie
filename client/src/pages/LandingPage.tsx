@@ -167,27 +167,16 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Trusted Partners Logos */}
-      <section className="py-16 bg-white flex-grow">
-        <div className="max-w-6xl mx-auto px-4">
-          <h3 className="text-center text-slate-400 font-bold text-sm tracking-wider uppercase mb-10">
-            Trusted by leading companies worldwide
-          </h3>
-          <div className="flex flex-wrap justify-center items-center gap-10 md:gap-16 opacity-50">
-            <span className="text-2xl font-bold text-slate-600 tracking-tight">MICROSOFT</span>
-            <span className="text-2xl font-bold text-slate-600 tracking-tight">GOOGLE</span>
-            <span className="text-2xl font-bold text-slate-600 tracking-tight">META</span>
-            <span className="text-2xl font-bold text-slate-600 tracking-tight">NETFLIX</span>
-            <span className="text-2xl font-bold text-slate-600 tracking-tight">AMAZON</span>
-          </div>
-        </div>
-      </section>
 
-      {/* Footer */}
       <footer className="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
         <div className="max-w-6xl mx-auto px-4 text-center space-y-4">
           <p className="text-sm font-semibold">© 2026 Taskie Inc. All rights reserved.</p>
-          <div className="flex justify-center gap-6 text-xs font-semibold">
+          <div className="flex justify-center flex-wrap gap-6 text-xs font-semibold">
+            <Link to="/features" className="hover:text-white transition">Features</Link>
+            <Link to="/pricing" className="hover:text-white transition">Pricing</Link>
+            <Link to="/about" className="hover:text-white transition">About Us</Link>
+            <Link to="/contact" className="hover:text-white transition">Contact</Link>
+            <span className="text-slate-700">|</span>
             <a href="#" className="hover:text-white transition">Privacy Policy</a>
             <a href="#" className="hover:text-white transition">Terms of Service</a>
             <a href="#" className="hover:text-white transition">Help Center</a>

@@ -19,11 +19,27 @@ export const Navbar: React.FC = () => {
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          <div className="flex items-center">
+          <div className="flex items-center gap-6">
             <Link to="/" className="flex items-center gap-2 text-brand-blue font-bold text-2xl tracking-tight">
               <Layout className="w-7 h-7 text-brand-blue" />
               <span>Taskie</span>
             </Link>
+            
+            {/* Desktop Center Links */}
+            <div className="hidden md:flex items-center gap-4 ml-6 border-l border-slate-200 pl-6">
+              <Link to="/features" className="text-slate-600 hover:text-brand-blue font-semibold text-sm transition">
+                Features
+              </Link>
+              <Link to="/pricing" className="text-slate-600 hover:text-brand-blue font-semibold text-sm transition">
+                Pricing
+              </Link>
+              <Link to="/about" className="text-slate-600 hover:text-brand-blue font-semibold text-sm transition">
+                About
+              </Link>
+              <Link to="/contact" className="text-slate-600 hover:text-brand-blue font-semibold text-sm transition">
+                Contact
+              </Link>
+            </div>
           </div>
 
           {/* Desktop Navigation */}
@@ -105,6 +121,38 @@ export const Navbar: React.FC = () => {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-4 space-y-2">
+          {/* Public Links */}
+          <div className="border-b border-slate-100 pb-2 mb-2 space-y-1">
+            <Link
+              to="/features"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Features
+            </Link>
+            <Link
+              to="/pricing"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Pricing
+            </Link>
+            <Link
+              to="/about"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50"
+            >
+              About
+            </Link>
+            <Link
+              to="/contact"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Contact
+            </Link>
+          </div>
+
           {user ? (
             <>
               <Link
