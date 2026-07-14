@@ -28,7 +28,14 @@ public class BoardMemberRepository
                     UserID = bm.UserID,
                     Role = bm.Role,
                     AddedAt = bm.AddedAt,
-                    User = u
+                    User = new UserDto
+                    {
+                        UserID = u.UserID,
+                        Email = u.Email,
+                        FullName = u.FullName,
+                        CreatedAt = u.CreatedAt,
+                        Role = u.Role
+                    }
                 }
             )
             .ToList();
@@ -152,5 +159,5 @@ public class BoardMemberViewModel
     public int UserID { get; set; }
     public string? Role { get; set; }
     public DateTime AddedAt { get; set; }
-    public UserModel? User { get; set; }
+    public UserDto? User { get; set; }
 }

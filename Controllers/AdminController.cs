@@ -36,7 +36,7 @@ namespace TaskieWNC.Controllers
 
         // User CRUD
         [HttpGet("users")]
-        public IActionResult GetUsers() => Ok(_userRepository.GetAllUsers());
+        public IActionResult GetUsers() => Ok(_userRepository.GetAllUsers().Select(UserDto.FromModel));
 
         [HttpPost("users/add")]
         public IActionResult AddUser([FromBody] AddUserRequest request)
@@ -56,7 +56,7 @@ namespace TaskieWNC.Controllers
             };
 
             _userRepository.Register(user);
-            return Ok(new { success = true, message = "User added successfully.", user = user });
+            return Ok(new { success = true, message = "User added successfully.", user = UserDto.FromModel(user) });
         }
 
         [HttpPut("users/update")]
@@ -69,7 +69,7 @@ namespace TaskieWNC.Controllers
             if (request.Field == "Role") user.Role = request.Value;
 
             _userRepository.UpdateUser(user);
-            return Ok(new { success = true, message = "User updated successfully.", user = user });
+            return Ok(new { success = true, message = "User updated successfully.", user = UserDto.FromModel(user) });
         }
 
         [HttpDelete("users/delete/{userId}")]
