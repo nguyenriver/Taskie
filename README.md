@@ -42,49 +42,78 @@ Taskie is a modern, full-stack, decoupled task management web application design
 
 ---
 
-## 🚀 Setup & Running Locally
+## 🚀 How to Run the Application
 
-### Prerequisites
+You can run this project in two ways: using a **Full Docker Compose Setup** (one-click run) or a **Hybrid Setup** (for active development).
+
+---
+
+### Option A: One-Click Docker Compose Setup (Recommended for Demos)
+
+This setup launches the entire stack (Database, C# API, Nginx frontend server) inside Docker containers. It automatically initializes the database tables and default admin accounts from the `docs/Taskie.sql` seed script.
+
+#### Prerequisites
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+#### Steps:
+1. In the project root directory, run the following command:
+   ```powershell
+   docker compose up --build
+   ```
+2. Wait until the output logs print `Database initialization complete` and the backend service is running.
+3. Open your browser and navigate to:
+   ```text
+   http://localhost:5173
+   ```
+4. Log in using the default administrator credentials:
+   * **Email:** `admin@taskie.com`
+   * **Password:** `admin123`
+
+To tear down the containers:
+```powershell
+docker compose down -v
+```
+
+---
+
+### Option B: Hybrid Local Setup (Recommended for Active Development)
+
+This setup runs the database container in Docker, while running the React client and C# Web API natively on your local machine to support instant hot-reloading (HMR) and easy debugging.
+
+#### Prerequisites
 1. **.NET 10.0 SDK** installed.
 2. **Node.js** (v20+ recommended) and **npm** installed.
 3. **Docker Desktop** installed and running.
 
----
+#### Steps:
 
-### Step 1: Run the Database (Docker)
+##### 1. Start the Database Container
 Ensure Docker Desktop is open and run the following command to spin up a local SQL Server instance:
 ```powershell
 docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=YourStrong@Passw0rd" -p 1433:1433 --name taskie-sqlserver -d mcr.microsoft.com/mssql/server:2022-latest
 ```
+*(If the container is already created, just start it using: `docker start taskie-sqlserver`)*
 
----
-
-### Step 2: Initialize Database Schemas (EF Core)
-Install the Entity Framework Core global tool (if you haven't already):
+##### 2. Apply Code-First Migrations
+Ensure the Entity Framework Core global tool is installed:
 ```powershell
 dotnet tool install --global dotnet-ef
 ```
-
-Apply code-first migrations to create database tables:
+Run migrations from the root folder to set up database schemas:
 ```powershell
-# In the project root directory
 dotnet ef database update
 ```
-*(Note: If you want to seed a default administrator account `admin@taskie.com`, refer to the SQL seed script in `docs/Taskie.sql`)*
+*(Note: To seed the default administrator account `admin@taskie.com` and sample boards, run the SQL script `docs/Taskie.sql` inside your database client).*
 
----
-
-### Step 3: Run the Backend API
-Start the ASP.NET Core Web API:
+##### 3. Start the Backend API
+Start the Web API with hot-reload enabled:
 ```powershell
 dotnet watch
 ```
-The API server will launch at `https://localhost:7196` (or `http://localhost:5031`).
+The server will boot and list its active ports (e.g. `http://localhost:5199`).
 
----
-
-### Step 4: Run the React Frontend
-Navigate to the `client` directory, install packages, and start the Vite dev server:
+##### 4. Start the React Frontend
+Open another terminal, navigate to the `client` directory, install packages, and start the Vite dev server:
 ```powershell
 cd client
 npm install
@@ -94,7 +123,7 @@ Open your browser and navigate to `http://localhost:5173`.
 
 ---
 
-## 🔒 Security & Architecture Notes (Self-Assessment)
+## 🔒 Security & Architecture Notes
 * **Authentication:** The project transitioned from session-based cookie cookies to stateless **JWT Token authentication** in `.NET 10.0`.
 * **Password Hashing:** Upgraded to **BCrypt** (via `BCrypt.Net-Next`) to ensure secure salted password hashing, including work-factor tuning. A SHA256 fallback is included for legacy database compatibilities.
 * **CORS Policy:** Strict origin control is implemented in `Program.cs` allowing only the designated local frontend port (`http://localhost:5173`) with allowed request headers and methods.

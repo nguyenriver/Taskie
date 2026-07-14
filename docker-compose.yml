@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: taskie-db-server
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong@Passw0rd
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "YourStrong@Passw0rd", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  init-db:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: taskie-db-initializer
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./docs/Taskie.sql:/usr/config/Taskie.sql
+    entrypoint: /bin/bash -c "
+      echo 'SQL Server is ready. Running schema script...';
+      /opt/mssql-tools/bin/sqlcmd -S db -U sa -P 'YourStrong@Passw0rd' -i /usr/config/Taskie.sql;
+      echo 'Database initialization complete.';"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskie-backend-api
+    ports:
+      - "5199:5199"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=db,1433;Database=TaskieDB;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True
+    depends_on:
+      db:
+        condition: service_healthy
+      init-db:
+        condition: service_completed_successfully
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: taskie-frontend-app
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
